@@ -2,7 +2,8 @@ FROM ubuntu:latest
 
 RUN apt update \
 	&& apt install -y software-properties-common \
-	&& apt install -y cmake git build-essential libssl-dev
+	&& apt install -y cmake git build-essential libssl-dev \
+	&& apt install gdb
 
 # emp-tool
 WORKDIR /root
