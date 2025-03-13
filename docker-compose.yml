@@ -1,10 +1,19 @@
 version: '1.0'
+
 services:
-  client:
+  alice:
     build: .
+    networks:
+      - mynet
     ports:
       - "8080:8080"
-  server:
+  bob:
     build: .
-    ports:
-      - "8080:8080"
+    networks:
+      - mynet
+    depends_on:
+      - alice
+
+networks:
+  mynet:
+    driver: bridge

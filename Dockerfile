@@ -1,39 +1,27 @@
-FROM ubuntu:latest
+
+
+# Image built from .devcontainer/Dockerfile
+ARG os_release="latest"
+ARG emp_image="nmn0gueira/ubuntu-emp:0.2.5"
+
+FROM ${emp_image} AS emp
+
+FROM ubuntu:${os_release}
 
 RUN apt update \
 	&& apt install -y software-properties-common \
 	&& apt install -y cmake git build-essential libssl-dev
 
-# emp-tool
 WORKDIR /root
-RUN git clone https://github.com/emp-toolkit/emp-tool.git
-WORKDIR /root/emp-tool
-RUN cmake . \
-	&& make \ 
-	&& make install
 
-# emp-ot
-WORKDIR /root
-RUN git clone https://github.com/emp-toolkit/emp-ot.git
-WORKDIR /root/emp-ot
-RUN cmake . \
-	&& make \
-	&& make install
+# Copy build dependencies from other docker images
+COPY --from=emp /usr/local/. /usr/local/.
 
-# emp-sh2pc
-WORKDIR /root
-RUN git clone https://github.com/emp-toolkit/emp-sh2pc.git
-WORKDIR /root/emp-sh2pc
-RUN cmake . \
-	&& make \
-	&& make install
+# Copy source code and install
+COPY . /emp-proto
+WORKDIR /emp-proto/build
+RUN cmake .. \
+	&& make
 
-# emp-ag2pc
-WORKDIR /root
-RUN git clone https://github.com/emp-toolkit/emp-ag2pc.git
-WORKDIR /root/emp-ag2pc
-RUN cmake . \
-	&& make \
-	&& make install
-
-WORKDIR /root
+# Run the application
+CMD ["/bin/bash"]
