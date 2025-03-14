@@ -6,7 +6,7 @@ using namespace std;
 
 const int LEN = 10;
 
-void test_innerprod(int party, string inputs[]) {
+void test_histogram(int party, string inputs[]) {
 
 	Integer sum(32, 0, PUBLIC);
 	Integer prod(32, 0, PUBLIC);
@@ -50,7 +50,6 @@ int main(int argc, char **argv) {
 	ifstream infile(filename);
 	
 	string inputs[LEN];
-	string inputs_b[LEN];
 
 	if (!infile.is_open()) {
         cerr << "Failed to open file: " << filename << endl;
@@ -63,7 +62,7 @@ int main(int argc, char **argv) {
 	}
 	infile.close();
 	
-	test_innerprod(party, inputs);
+	test_histogram(party, inputs);
 
 	delete io;
     return 0;

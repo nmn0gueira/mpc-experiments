@@ -27,7 +27,6 @@ int main(int argc, char** argv) {
 	int num = atoi(argv[argc - 1]);		// number is the last argument
 
 	NetIO * io = new NetIO(ip, port);
-
 	setup_semi_honest(io, party);
 	test_millionaire(party, num);
 //	test_sort(party);

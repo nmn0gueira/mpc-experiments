@@ -44,6 +44,32 @@ def gen_input(program, n, l):
                 f.write("%d\n"%x)
     print("expected value: %d"%(sum(x*y for x,y in zip(lists[0][1], lists[1][1]))))
 
+def gen_xtabs_input(n, l):
+    LEN = l
+    IDMAX = min(2 * LEN, 2**n)
+    BINS = 5
+
+    with open("data/xtabs/%d.bins.dat"%n,'w') as f:
+        xs = [(random.randint(0,IDMAX), random.randint(0,BINS-1)) for _ in range(LEN)]
+        for idx, binx in xs:
+            x = "%d %d\n"%(idx, binx)
+            f.write(x)
+
+    with open("data/xtabs/%d.vals.dat"%n,'w') as f:
+        ys = [(random.randint(0,IDMAX), 
+               random.getrandbits(int(n/int(math.log(l,2))))) for _ in range(LEN)]
+        for idy, val in ys:
+            y = "%d %d\n"%(idy,val)
+            f.write(y)
+
+    binsums = [0] * BINS
+    for idx, binx in xs:
+        for idy, val in ys:
+            if idx == idy:
+                binsums[binx] += val
+
+    print("expected value: ", binsums)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -51,9 +77,9 @@ if __name__ == "__main__":
     parser.add_argument('-n', default=32, type=int, 
         help="integer bit length")
     parser.add_argument('-l', default=10, type=int, 
-        help="array length (for innerprod)")
-    programs = ["mult3","innerprod", "histogram"]
-    parser.add_argument('-e', default="innerprod", choices = programs,
+        help="array length (for innerprod, xtabs)")
+    programs = ["mult3","innerprod","xtabs"]
+    parser.add_argument('-e', default="xtabs", choices = programs,
         help="program selection")
     args = parser.parse_args()
 
@@ -65,7 +91,7 @@ if __name__ == "__main__":
     elif args.e == "innerprod":
         gen_input(args.e, args.n, args.l)
 
-    elif args.e == "histogram":
-        gen_input(args.e, args.n, args.l)
+    elif args.e == "xtabs":
+        gen_xtabs_input(args.n, args.l)
 
 
