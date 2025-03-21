@@ -1,5 +1,6 @@
 import argparse, random, os, math, functools, errno
-from operator import mul
+from collections import OrderedDict
+from operator import mul, itemgetter
 
 def create_dirs(program):
     dirname = "data/"+program
@@ -36,7 +37,7 @@ def gen_input(program, n, l):
         return
 
     bits = int((n - int(math.log(l, 2))) / 2)
-    # print bits
+    
     lists = [(i,get_rand_list(bits,l)) for i in [1,2]]
     for party,data in lists:
         with open("data/%s/%d.%s.dat"%(program,n,party),'w') as f:
@@ -71,14 +72,69 @@ def gen_xtabs_input(n, l):
     print("expected value: ", binsums)
 
 
+
+def gen_groupby_input(n, l):
+    '''
+    Generates input for groupby program. This input functions as if both parties already have their input ordered. One party has the (typically 
+    categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
+    output will depend on the function that is used to aggregate the values.
+    '''
+    if (n > 32):
+        print ("invalid bit length---this test can only handle up to 32 bits")
+        print ("because we read in input using `stoi`")
+        return
+
+    bits = int((n - int(math.log(l, 2))) / 2)
+
+    if n != 32: # When generating categorical values instead of continuous values
+        bits = 2
+
+    # Groupby list must have some repeated items
+    groupby = get_rand_list(2, l)
+    values = get_rand_list(bits, l)
+
+    for party, data in zip([1,2], [groupby, values]):
+        with open("data/groupby/%d.%s.dat"%(n,party),'w') as f:
+            for x in data:
+                f.write("%d\n"%x)
+    
+
+    # Expected values by function
+    sums = {}
+    for i in range(l):
+        sums[groupby[i]] = sums.get(groupby[i], 0) + values[i]
+
+    averages = {}
+    for i in range(l):
+        averages[groupby[i]] = averages.get(groupby[i], 0) + values[i]
+    for key in averages:
+        averages[key] = averages[key] / groupby.count(key)
+
+    
+    frequencies = {}    # absolute frequencies
+    for i in range(l):
+        frequency_dict = frequencies.get(groupby[i], {})
+        frequency_dict[values[i]] = frequency_dict.get(values[i], 0) + 1
+        frequencies[groupby[i]] = frequency_dict
+    modes = {}
+    for k, v in frequencies.items():
+        modes[k] = max(v.items(), key=itemgetter(1))[0]
+    
+    print(f"Expected values (sum): {sorted(sums.items())}\n")
+    print(f"Expected values (mean): {sorted(averages.items())}\n")
+    print(f"Expected values (mode): {sorted(modes.items())}\n")
+    print(f"Expected values (frequencies): {sorted(frequencies.items())}\n")
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='generates input for emp-toolkit sample programs')
     parser.add_argument('-n', default=32, type=int, 
         help="integer bit length")
     parser.add_argument('-l', default=10, type=int, 
-        help="array length (for innerprod, xtabs)")
-    programs = ["mult3","innerprod","xtabs"]
+        help="array length (for innerprod, xtabs, groupby)")
+    programs = ["mult3","innerprod","xtabs", "groupby"]
     parser.add_argument('-e', default="xtabs", choices = programs,
         help="program selection")
     args = parser.parse_args()
@@ -93,5 +149,8 @@ if __name__ == "__main__":
 
     elif args.e == "xtabs":
         gen_xtabs_input(args.n, args.l)
+
+    elif args.e == "groupby":
+        gen_groupby_input(args.n, args.l)
 
 

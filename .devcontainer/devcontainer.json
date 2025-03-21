@@ -25,7 +25,10 @@
 			"settings": {},
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
-				"ms-vscode.makefile-tools"
+				"ms-vscode.makefile-tools",
+				"ms-python.python",
+				"fill-labs.dependi",
+				"formulahendry.code-runner"
 			]
 		}
 	}

@@ -18,3 +18,4 @@ endmacro()
 # Test cases
 add_test_case_with_run(innerprod)
 add_test_case_with_run(millionaire)
+add_test_case_with_run(groupby)
