@@ -1,3 +1,12 @@
+/**
+ * Notes:
+ * 1. This program requires the mapping of the categorical variables to group by to an integer range for the functions to be executed. After the
+ * functions are executed the same mapping can be reversed, of course.
+ * 
+ * 2. This program assumes that the input for both parties is already matched (as if each record in order from both parties had the same id) since 
+ * the private matching component will not be handled through emp-toolkit.
+ */
+
 #include "emp-sh2pc/emp-sh2pc.h"
 #include <iostream>
 #include <unistd.h>
@@ -103,7 +112,11 @@ void test_average(int party, string inputs[]) {
 
 /**
  * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
- * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf)
+ * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).~
+ * 
+ * Note 1: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
+ * one displayed.
+ * Note 2: This is essentially cross-tabulation
  */
 void test_mode(int party, string inputs[]) {
 	Integer *a = new Integer[LEN];
@@ -123,13 +136,15 @@ void test_mode(int party, string inputs[]) {
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
+
+	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	Integer one (BITSIZE, 1);
 	for (int i = 0; i < LEN; ++i) {
 		for (int j = 0; j < GROUPBY_CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
-			// if a[i] == j then result = b[i] else result = 0
+			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
 			Integer groupby_cat(BITSIZE, j);
 			Bit eq_groupby_cat = a[i].equal(groupby_cat);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
@@ -143,18 +158,38 @@ void test_mode(int party, string inputs[]) {
 			}	
 		}	
 	}
+
+	
+	// With the frequencies calculated, find the mode for each group
+	for (int i = 0; i < GROUPBY_CAT_LEN; ++i) {
+		Integer max(BITSIZE, 0);
+		Integer mode(BITSIZE, -1);
+		for (int j = 0; j < VAL_CAT_LEN; ++j) {
+			Integer val_cat(BITSIZE, j);
+			
+			Integer freq = frequencies[i][j];
+			Bit geq = freq.geq(max);
+
+			// This will only update max when freq is greater or equal to max
+			max = max.select(geq, freq);
+
+			// If max was assigned a new value, we need to update the mode for the group
+			Bit eq_max = freq.equal(max);
+			mode = mode.select(eq_max, val_cat);		
+		}
+		modes[i] = mode;		
+	}
+
+
 	for (int i = 0; i < GROUPBY_CAT_LEN; ++i) {
 		for (int j = 0; j < VAL_CAT_LEN; ++j) {
-			cout << "frequency of the number " << j <<  " in category " << i << ": " << frequencies[i][j].reveal<int>() << endl;
+			cout << "group " << i <<  ", frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
 		}
+		cout << "mode of group " << i << ": " << modes[i].reveal<int>() << endl;
 	}
 }
 
 
-/**
- * This program requires the mapping of the categorical variables to groupby to an integer range for the functions to be executed. After the
- * functions are executed the same mapping can be reversed, of course
- */
 int main(int argc, char **argv) {
 	if (argc != 5 && argc != 6) {
 		cout << "Usage for Alice (server): <program> 1 <port> <aggregation> <input file>" << endl;
@@ -203,9 +238,6 @@ int main(int argc, char **argv) {
 			break;
 		case 'd':
 			cout << "Standard Deviation" << endl;
-			break;
-		case 'c':
-			cout << "Count" << endl;
 			break;
 		default:
 			cout << "Invalid aggregation type" << endl;

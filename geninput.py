@@ -45,6 +45,7 @@ def gen_input(program, n, l):
                 f.write("%d\n"%x)
     print("expected value: %d"%(sum(x*y for x,y in zip(lists[0][1], lists[1][1]))))
 
+
 def gen_xtabs_input(n, l):
     LEN = l
     IDMAX = min(2 * LEN, 2**n)
