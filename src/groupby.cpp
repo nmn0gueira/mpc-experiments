@@ -7,74 +7,154 @@ using namespace std;
 
 const int BITSIZE = 32;
 const int LEN = 10;
-const int SUMLEN = 4;
+const int GROUPBY_CAT_LEN = 4;
+const int VAL_CAT_LEN = 4;
 
 
+/**
+ * Simplest of the functions
+ */
 void test_sum(int party, string inputs[]) {
 	Integer *a = new Integer[LEN];
 	Integer *b = new Integer[LEN];
-	Integer sums [SUMLEN];		// TODO: change to dynamic size
-	string categories[] = {"0", "1", "2", "3"}; // TODO: change to dynamic input
+	Integer sums [GROUPBY_CAT_LEN];		// TODO: change to dynamic size
 
 	// Initialize the secure integers
-	for(int i = 0; i < LEN; i++)
+	for(int i = 0; i < LEN; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
-
-	for(int i = 0; i < LEN; i++)
 		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
+	}
 
 	// Initialize sums
-	for(int i = 0; i < SUMLEN; i++) {
+	for(int i = 0; i < GROUPBY_CAT_LEN; ++i) {
 		sums[i] = Integer(BITSIZE, 0, PUBLIC);
 	}
 
 	// Calculate sums
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
-	for (int i = 0; i < LEN; i++) {
-		for (int j = 0; j < SUMLEN; j++) {
-			Integer cat(BITSIZE, j);
+	for (int i = 0; i < LEN; ++i) {
+		for (int j = 0; j < GROUPBY_CAT_LEN; ++j) {
+			// This compares the given category against the category of the current element
+			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0
+			Integer cat(BITSIZE, j);
 			Bit eqcat = a[i].equal(cat);
 			Integer result = zero.select(eqcat, b[i]);	
-			
+		
 			sums[j] = sums[j] + result;
 		}	
 	}
 
 	// Reveal sums
-    for(int i = 0; i < SUMLEN; i++) {
-        cout << "sum " << ": " << sums[i].reveal<int>() << endl;
-    }
+    for(int i = 0; i < GROUPBY_CAT_LEN; ++i) {
+        cout << "sum " << i << ": " << sums[i].reveal<int>() << endl;
+   }
 }
 
 
+/**
+ * For the average function, we need to use emp::Float types instead of emp::Integer types for the final results if we want precision in the 
+ * averages (otherwise we can use just integer division ig)
+ */
 void test_average(int party, string inputs[]) {
 
 	Integer *a = new Integer[LEN];
-	Integer *b = new Integer[LEN];
-	Pair averages [LEN];
+	Float *b = new Float[LEN];
+	Float sums [GROUPBY_CAT_LEN];		// TODO: change to dynamic size
+	Float counts [GROUPBY_CAT_LEN];	// TODO: change to dynamic size
 
 	// Initialize the secure integers
-	for(int i = 0; i < LEN; i++)
+	for(int i = 0; i < LEN; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
+		b[i] = Float(stoi(inputs[i]), BOB);
+	}	
 
-	for(int i = 0; i < LEN; i++)
-		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
-	/*
-	// Initialize averages
-	for(int i = 0; i < sumlen; i++) {
-		averages[i] = Pair(PUBLIC, BITSIZE, categories[], 0);
+	// Initialize sums and counts
+	for(int i = 0; i < GROUPBY_CAT_LEN; ++i) {
+		sums[i] = Float();
+		counts[i] = Float();
 	}
 
-	// Calculate averages
+	// Calculate Averages
+	Float zero = Float();	// Default party is PUBLIC
+	Float one = Float(1, PUBLIC);
+	for (int i = 0; i < LEN; ++i) {
+		for (int j = 0; j < GROUPBY_CAT_LEN; ++j) {
+			// This compares the given category against the category of the current element
+			// The category of the element must be mapped to an integer to have less of a headache
+			// if a[i] == j then result = b[i] else result = 0
+			Integer cat(BITSIZE, j);
+			Bit eqcat = a[i].equal(cat);
+			Float result_sum = zero.If(eqcat, b[i]);
+			Float result_count = zero.If(eqcat, one);
+		
+			sums[j] = sums[j] + result_sum;
+			counts[j] = counts[j] + result_count;
+		}	
+	}
 
-	// reveal sums
-    for(int i = 0; i < sumlen; i++) {
-        cout << "sum " << averages[i].get_id().reveal<int>() << ": " << averages[i].get_val().reveal<int>() << endl;
-    }*/
+	// Reveal averages
+    for(int i = 0; i < GROUPBY_CAT_LEN; ++i) {
+		float average = (sums[i] / counts[i]).reveal<double>();
+        cout << "average " << i << ": " << average << endl;
+	}
 }
 
 
+/**
+ * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
+ * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf)
+ */
+void test_mode(int party, string inputs[]) {
+	Integer *a = new Integer[LEN];
+	Integer *b = new Integer[LEN];
+	Integer frequencies[GROUPBY_CAT_LEN][VAL_CAT_LEN]; //TODO: change to dynamic size
+	Integer modes[GROUPBY_CAT_LEN];
+
+	// Initialize the secure integers
+	for(int i = 0; i < LEN; ++i) {
+		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
+		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
+	}
+
+	// Initialize frequency count
+	for(int i = 0; i < GROUPBY_CAT_LEN; ++i) {
+		for (int j = 0; j < VAL_CAT_LEN; ++j)
+			frequencies[i][j] = Integer(BITSIZE, 0);
+	}
+
+	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
+	Integer one (BITSIZE, 1);
+	for (int i = 0; i < LEN; ++i) {
+		for (int j = 0; j < GROUPBY_CAT_LEN; ++j) {
+			// This compares the given category against the category of the current element
+			// The category of the element must be mapped to an integer to have less of a headache
+			// if a[i] == j then result = b[i] else result = 0
+			Integer groupby_cat(BITSIZE, j);
+			Bit eq_groupby_cat = a[i].equal(groupby_cat);
+			Integer result_groupby = zero.select(eq_groupby_cat, one);
+			
+			for (int k = 0; k < VAL_CAT_LEN; ++k) {
+				Integer val_cat(BITSIZE, k);
+				Bit eq_val_cat = b[i].equal(val_cat);
+				Integer result_val = zero.select(eq_val_cat, result_groupby);
+
+				frequencies[j][k] = frequencies[j][k] + result_val;
+			}	
+		}	
+	}
+	for (int i = 0; i < GROUPBY_CAT_LEN; ++i) {
+		for (int j = 0; j < VAL_CAT_LEN; ++j) {
+			cout << "frequency of the number " << j <<  " in category " << i << ": " << frequencies[i][j].reveal<int>() << endl;
+		}
+	}
+}
+
+
+/**
+ * This program requires the mapping of the categorical variables to groupby to an integer range for the functions to be executed. After the
+ * functions are executed the same mapping can be reversed, of course
+ */
 int main(int argc, char **argv) {
 	if (argc != 5 && argc != 6) {
 		cout << "Usage for Alice (server): <program> 1 <port> <aggregation> <input file>" << endl;
@@ -91,7 +171,7 @@ int main(int argc, char **argv) {
 	char* filename = argv[argc - 1];		// number is the last argument
 	
 	NetIO * io = new NetIO(ip, port);
-	setup_semi_honest(io, party);
+	auto ctx = setup_semi_honest(io, party);
 	
 	ifstream infile(filename);
 	if (!infile.is_open()) {
@@ -106,15 +186,17 @@ int main(int argc, char **argv) {
 	}
 	infile.close();
 
+
 	switch (aggregation[0]) {
 		case 's':
 			test_sum(party, inputs);
 			break;
 		case 'a':
+			ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
 			test_average(party, inputs);
 			break;
 		case 'm':
-			cout << "Mode" << endl;
+			test_mode(party, inputs);
 			break;
 		case 'v':
 			cout << "Variance" << endl;
