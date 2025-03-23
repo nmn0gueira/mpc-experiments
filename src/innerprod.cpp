@@ -4,21 +4,21 @@
 using namespace emp;
 using namespace std;
 
-const int LEN = 10;
+const int INPUT_LEN = 10;
 
 void test_innerprod(int party, string inputs[]) {
 
 	Integer sum(32, 0, PUBLIC);
 	Integer prod(32, 0, PUBLIC);
-	Integer *a = new Integer[LEN];
-	Integer *b = new Integer[LEN];
-	for(int i = 0; i < LEN; i++)
+	Integer *a = new Integer[INPUT_LEN];
+	Integer *b = new Integer[INPUT_LEN];
+	for(int i = 0; i < INPUT_LEN; i++)
 		a[i] = Integer(32, stoi(inputs[i]), ALICE);
 
-	for(int i = 0; i < LEN; i++)
+	for(int i = 0; i < INPUT_LEN; i++)
 		b[i] = Integer(32, stoi(inputs[i]), BOB);
 
-	for(int i = 0; i < LEN; i++) {
+	for(int i = 0; i < INPUT_LEN; i++) {
 		prod = a[i] * b[i];
 		sum = sum + prod;
 	}
@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
 	
 	ifstream infile(filename);
 	
-	string inputs[LEN];
-	string inputs_b[LEN];
+	string inputs[INPUT_LEN];
+	string inputs_b[INPUT_LEN];
 
 	if (!infile.is_open()) {
         cerr << "Failed to open file: " << filename << endl;
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 		return 1;
     }
 	
-	for(int i = 0; i < LEN; i++) {
+	for(int i = 0; i < INPUT_LEN; i++) {
 		getline(infile, inputs[i]);
 	}
 	infile.close();

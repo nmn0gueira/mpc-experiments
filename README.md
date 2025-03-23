@@ -37,7 +37,7 @@ The default for -n and -l is 32 and 10 respectively.
 
 
 ### Running the examples
-Some examples may have slighly different arguments where it is best to check the usage by simplying executing the program without arguments. In general, however, to run an example you can run the following command for Alice:
+Some examples may have slighly different arguments where it is best to check the usage by simplying executing the program without arguments. In general, to run an example you can run the following command for Alice:
 
 ```bash
 ./bin/<ex> 1 <port> <input file>
@@ -55,7 +55,7 @@ And the following for Bob:
 Current functions include:
  - 'millionaire': Determine which of two numbers is larger.
  - 'inner_product': Calculate the inner product of two vectors.
- - 'group_by': Group by a column and aggregate the values of another column. Currently supports sum, average and mode.
- - 'crosstabulation': Create a crosstabulation of two columns.
-
-Note that, at the moment, cross-tabulation and mode are part of the same function.
+ - 'xtabs': Computation of cross-tabulation/pivot table. Groups by a column or more and computes an aggregation on the values of another column. Current aggregations include: 
+    - sum (grouping by a single column)
+    - average (grouping by a single column)
+    - frequency/mode

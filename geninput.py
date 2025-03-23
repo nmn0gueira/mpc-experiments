@@ -1,6 +1,6 @@
-import argparse, random, os, math, functools, errno
-from collections import OrderedDict
-from operator import mul, itemgetter
+import argparse, random, os, math, errno
+import numpy as np
+from operator import itemgetter
 
 def create_dirs(program):
     dirname = "data/"+program
@@ -12,22 +12,6 @@ def create_dirs(program):
 
 def get_rand_list(bits, l):
     return [random.getrandbits(bits) for _ in range(l)]
-
-def gen_mult3_input(n) :
-    product = 1
-    bits = int(n/3)
-    xs = get_rand_list(bits,3)
-    ys = get_rand_list(bits,3)
-    fx = open("data/mult3/%d.1.dat"%n, 'w')
-    fy = open("data/mult3/%d.2.dat"%n, 'w')
-    for i in range(3):
-        fx.write("%d\n"%xs[i])
-        fy.write("%d\n"%ys[i])
-    fx.close()
-    fy.close()
-    result = functools.reduce(mul, [x+y for x,y in zip(xs,ys)], 1)
-    print("expected value: %d"%result)
-    print("      l binary: {0:b}".format(result))
 
 
 def gen_input(program, n, l):
@@ -47,36 +31,8 @@ def gen_input(program, n, l):
 
 
 def gen_xtabs_input(n, l):
-    LEN = l
-    IDMAX = min(2 * LEN, 2**n)
-    BINS = 5
-
-    with open("data/xtabs/%d.bins.dat"%n,'w') as f:
-        xs = [(random.randint(0,IDMAX), random.randint(0,BINS-1)) for _ in range(LEN)]
-        for idx, binx in xs:
-            x = "%d %d\n"%(idx, binx)
-            f.write(x)
-
-    with open("data/xtabs/%d.vals.dat"%n,'w') as f:
-        ys = [(random.randint(0,IDMAX), 
-               random.getrandbits(int(n/int(math.log(l,2))))) for _ in range(LEN)]
-        for idy, val in ys:
-            y = "%d %d\n"%(idy,val)
-            f.write(y)
-
-    binsums = [0] * BINS
-    for idx, binx in xs:
-        for idy, val in ys:
-            if idx == idy:
-                binsums[binx] += val
-
-    print("expected value: ", binsums)
-
-
-
-def gen_groupby_input(n, l):
     '''
-    Generates input for groupby program. This input functions as if both parties already have their input ordered. One party has the (typically 
+    Generates input for xtabs program. This input functions as if both parties already have their input ordered. One party has the (typically 
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
     output will depend on the function that is used to aggregate the values.
     '''
@@ -87,36 +43,39 @@ def gen_groupby_input(n, l):
 
     bits = int((n - int(math.log(l, 2))) / 2)
 
-    if n != 32: # When generating categorical values instead of continuous values
-        bits = 2
+    # Bins/categories must have some repeated items
+    bins_a = get_rand_list(2, l)
+    bins_b = get_rand_list(2, l) # Second bins data file for when computing regular cross tabulation with Bob
 
-    # Groupby list must have some repeated items
-    groupby = get_rand_list(2, l)
     values = get_rand_list(bits, l)
 
-    for party, data in zip([1,2], [groupby, values]):
-        with open("data/groupby/%d.%s.dat"%(n,party),'w') as f:
+
+    for party, data in zip([1, 2], [bins_a, bins_b]):
+        with open(f"data/xtabs/{n}.bins.{party}.dat",'w') as f:
             for x in data:
-                f.write("%d\n"%x)
+                f.write(f"{x}\n")
     
+    with open (f"data/xtabs/{n}.vals.2.dat", 'w') as f:
+        for x in values:
+            f.write(f"{x}\n")
 
     # Expected values by function
     sums = {}
     for i in range(l):
-        sums[groupby[i]] = sums.get(groupby[i], 0) + values[i]
+        sums[bins_a[i]] = sums.get(bins_a[i], 0) + values[i]
 
     averages = {}
     for i in range(l):
-        averages[groupby[i]] = averages.get(groupby[i], 0) + values[i]
+        averages[bins_a[i]] = averages.get(bins_a[i], 0) + values[i]
     for key in averages:
-        averages[key] = averages[key] / groupby.count(key)
+        averages[key] = averages[key] / bins_a.count(key)
 
     
     frequencies = {}    # absolute frequencies
     for i in range(l):
-        frequency_dict = frequencies.get(groupby[i], {})
-        frequency_dict[values[i]] = frequency_dict.get(values[i], 0) + 1
-        frequencies[groupby[i]] = frequency_dict
+        frequency_dict = frequencies.get(bins_a[i], {})
+        frequency_dict[bins_b[i]] = frequency_dict.get(bins_b[i], 0) + 1
+        frequencies[bins_a[i]] = frequency_dict
     modes = {}
     for k, v in frequencies.items():
         modes[k] = max(v.items(), key=itemgetter(1))[0]
@@ -128,30 +87,69 @@ def gen_groupby_input(n, l):
 
 
 
+def gen_linreg_input(n, l):
+    '''
+    Model: y = beta_0 + beta_1 * x
+    '''
+    if (n > 32):
+        print ("invalid bit length---this test can only handle up to 32 bits")
+        print ("because we read in input using `stoi`")
+        return
+
+    bits = int((n - int(math.log(l, 2))) / 2)
+    
+    features = get_rand_list(bits, l)   # x
+    labels = get_rand_list(bits, l)     # y
+
+    for party, data in zip([1,2], [features, labels]):
+        with open(f"data/linreg/{n}.{party}.dat",'w') as f:
+            for x in data:
+                f.write(f"{x}\n")
+
+    # Sums
+    sum_x = np.sum(features)
+    sum_y = np.sum(labels)
+
+    
+    sum_xy = sum(x*y for x,y in zip(features,labels))
+    sum_x2 = sum(x**2 for x in features)
+
+    # Calculate slope (beta_1)
+    beta_1 = (l * sum_xy - sum_x * sum_y) / (l * sum_x2 - sum_x ** 2)
+
+    # Calclate intercept (beta_0)
+    beta_0 = (sum_y - beta_1 * sum_x) / l
+    
+    # Calculate training error
+    squared_errors = 0
+    
+    for x, y_true in zip(features, labels):
+        y_pred = beta_0 + beta_1 * x
+        squared_errors += (y_true - y_pred) ** 2
+
+    mean_squared_error = squared_errors / l
+    print (f"Expected training error of model: {mean_squared_error}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='generates input for emp-toolkit sample programs')
     parser.add_argument('-n', default=32, type=int, 
         help="integer bit length")
     parser.add_argument('-l', default=10, type=int, 
-        help="array length (for innerprod, xtabs, groupby)")
-    programs = ["mult3","innerprod","xtabs", "groupby"]
+        help="array length")
+    programs = ["innerprod", "xtabs", "linreg"]
     parser.add_argument('-e', default="xtabs", choices = programs,
         help="program selection")
     args = parser.parse_args()
 
     create_dirs(args.e)
 
-    if args.e == "mult3":
-        gen_mult3_input(args.n)
-
-    elif args.e == "innerprod":
+    if args.e == "innerprod":
         gen_input(args.e, args.n, args.l)
 
     elif args.e == "xtabs":
         gen_xtabs_input(args.n, args.l)
-
-    elif args.e == "groupby":
-        gen_groupby_input(args.n, args.l)
-
-
+    
+    elif args.e == "linreg":
+        gen_linreg_input(args.n, args.l)
