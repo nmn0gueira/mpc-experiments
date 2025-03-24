@@ -53,9 +53,13 @@ And the following for Bob:
 ## Example functions
 
 Current functions include:
- - 'millionaire': Determine which of two numbers is larger.
- - 'inner_product': Calculate the inner product of two vectors.
+ - 'millionaire': Determine which of two numbers is larger. Basic control test program.
  - 'xtabs': Computation of cross-tabulation/pivot table. Groups by a column or more and computes an aggregation on the values of another column. Current aggregations include: 
     - sum (grouping by a single column)
     - average (grouping by a single column)
     - frequency/mode
+- 'linreg': Linear regression. Computes the coefficients of a linear regression model.
+
+### TBD (for now)
+- 'standard_scaler': Add the standard scaler to the linear regression model as the default option.
+- 'hist_2d': 2D histogram. Computes the frequency of each pair of values in two columns.

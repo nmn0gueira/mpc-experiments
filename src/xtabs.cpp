@@ -115,9 +115,8 @@ void test_average(int party, string inputs[]) {
  * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
  * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).~
  * 
- * Note 1: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
+ * Note: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
  * one displayed.
- * Note 2: This is essentially cross-tabulation
  */
 void test_mode(int party, string inputs[]) {
 	Integer *a = new Integer[INPUT_LEN];

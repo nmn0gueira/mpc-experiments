@@ -16,21 +16,36 @@ def get_rand_list(bits, l):
     return [random.getrandbits(bits) for _ in range(l)]
 
 
-def gen_input(program, n, l):
+def gen_input(program, n, l, adjust_bit_length=True):
+    '''
+    General function for generating the actual numbers for sample programs and handling I/O.
+
+    Parameters:
+    n (int): The max number of bits for a number (not accounting for bit adjustment).
+    l (int): The generated input size
+    adjust_bit_length (bool): If true, the bit length specified will be adjusted to mitigate operations with extremely large
+    numbers which may lead to overflows and such. Should be False when working with smaller bit sizes.
+
+    Returns:
+    list[list[int]]: Two lists containg the generated input for each party
+    '''
     if (n > 32):
         print ("invalid bit length---this test can only handle up to 32 bits")
         print ("because we read in input using `stoi`")
         return
 
-    bits = int((n - int(math.log(l, 2))) / 2)
+    bits = n
+
+    if (adjust_bit_length):
+        bits = int((n - int(math.log(l, 2))) / 2)
     
     lists = [(i,get_rand_list(bits,l)) for i in [1,2]]
     for party,data in lists:
-        with open("data/%s/%d.%s.dat"%(program,n,party),'w') as f:
+        with open(f"data/{program}/{n}.{party}.dat"%(program,n,party),'w') as f:
             for x in data:
                 f.write("%d\n"%x)
-    print("expected value: %d"%(sum(x*y for x,y in zip(lists[0][1], lists[1][1]))))
 
+    return lists
 
 def gen_xtabs_input(n, l):
     '''
@@ -152,17 +167,14 @@ if __name__ == "__main__":
         help="integer bit length")
     parser.add_argument('-l', default=10, type=int, 
         help="array length")
-    programs = ["innerprod", "xtabs", "linreg"]
+    programs = ["xtabs", "linreg"]
     parser.add_argument('-e', default="xtabs", choices = programs,
         help="program selection")
     args = parser.parse_args()
 
     create_dirs(args.e)
 
-    if args.e == "innerprod":
-        gen_input(args.e, args.n, args.l)
-
-    elif args.e == "xtabs":
+    if args.e == "xtabs":
         gen_xtabs_input(args.n, args.l)
     
     elif args.e == "linreg":

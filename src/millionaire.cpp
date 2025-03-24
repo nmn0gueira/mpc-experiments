@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
 	NetIO * io = new NetIO(ip, port);
 	setup_semi_honest(io, party);
 	test_millionaire(party, num);
-//	test_sort(party);
 	cout << CircuitExecution::circ_exec->num_and()<<endl;
 	finalize_semi_honest();
 	delete io;

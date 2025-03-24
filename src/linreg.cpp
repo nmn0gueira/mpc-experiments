@@ -6,14 +6,17 @@ using namespace std;
 
 const int BITSIZE = 32;
 const int INPUT_LEN = 10;
-const int ALICE_CAT_LEN = 4;
-const int BOB_CAT_LEN = 4;
+
+
+void standard_scaler(Float & a) {
+	// Subtract each value by the mean of all values and divide by the stdev of all features
+}
 
 
 /**
- * Simplest of the functions
+ * Single variable linear regression. Assumes Alice has the feature column and Bob has the labels.
  */
-void test_linreg(int party, string inputs[]) {
+void test_linreg(int party, string inputs[], bool scale=true) {
 	Float *a = new Float[INPUT_LEN];
 	Float *b = new Float[INPUT_LEN];
 	Float input_size = Float(INPUT_LEN, PUBLIC);
@@ -27,6 +30,9 @@ void test_linreg(int party, string inputs[]) {
 		a[i] = Float(stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}
+
+	if (scale)
+		standard_scaler(*a);
 
 	// Calculate sums
 	for (int i = 0; i < INPUT_LEN; ++i) {
@@ -42,7 +48,7 @@ void test_linreg(int party, string inputs[]) {
 	// Calculate intercept
 	Float beta_0 = (sum_y - beta_1 * sum_x) / input_size;
 
-	// Reveal intercept and coef
+	// Reveal intercept and slope
     cout << "Intercept (beta_0): " << beta_0.reveal<double>() << endl;
 	cout << "Slope (beta_1): " << beta_1.reveal<double>() << endl;
 }
