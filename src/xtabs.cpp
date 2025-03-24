@@ -26,16 +26,18 @@ void test_sum(int party, string inputs[]) {
 	Integer *a = new Integer[INPUT_LEN];
 	Integer *b = new Integer[INPUT_LEN];
 	Integer sums [ALICE_CAT_LEN];		// TODO: change to dynamic size
+	Integer categories [ALICE_CAT_LEN];
 
 	// Initialize the secure integers
-	for(int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < INPUT_LEN; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
 		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
 	}
 
 	// Initialize sums
-	for(int i = 0; i < ALICE_CAT_LEN; ++i) {
+	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
 		sums[i] = Integer(BITSIZE, 0, PUBLIC);
+		categories[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
 	// Calculate sums
@@ -45,8 +47,7 @@ void test_sum(int party, string inputs[]) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0
-			Integer cat(BITSIZE, j);
-			Bit eqcat = a[i].equal(cat);
+			Bit eqcat = a[i].equal(categories[j]);
 			Integer result = zero.select(eqcat, b[i]);	
 		
 			sums[j] = sums[j] + result;
@@ -54,7 +55,7 @@ void test_sum(int party, string inputs[]) {
 	}
 
 	// Reveal sums
-    for(int i = 0; i < ALICE_CAT_LEN; ++i) {
+    for (int i = 0; i < ALICE_CAT_LEN; ++i) {
         cout << "sum " << i << ": " << sums[i].reveal<int>() << endl;
    }
 }
@@ -62,25 +63,27 @@ void test_sum(int party, string inputs[]) {
 
 /**
  * For the average function, we need to use emp::Float types instead of emp::Integer types for the final results if we want precision in the 
- * averages (otherwise we can use just integer division ig)
+ * averages (otherwise we can use just integer division ig).
  */
 void test_average(int party, string inputs[]) {
-
+	// CAN POTENTIALLY BE OPTIMIZED BY REVEALING THE SUM AND COUNT ALLOWING TO WORK WITH ONLY INTEGERS AND MAKING THE FLOAT DIVISION IN CLEARTEXT.
 	Integer *a = new Integer[INPUT_LEN];
 	Float *b = new Float[INPUT_LEN];
 	Float sums [ALICE_CAT_LEN];		// TODO: change to dynamic size
 	Float counts [ALICE_CAT_LEN];	// TODO: change to dynamic size
+	Integer categories [ALICE_CAT_LEN];
 
 	// Initialize the secure integers
-	for(int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < INPUT_LEN; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}	
 
 	// Initialize sums and counts
-	for(int i = 0; i < ALICE_CAT_LEN; ++i) {
+	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
 		sums[i] = Float();
 		counts[i] = Float();
+		categories[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
 	// Calculate Averages
@@ -91,8 +94,7 @@ void test_average(int party, string inputs[]) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0
-			Integer cat(BITSIZE, j);
-			Bit eqcat = a[i].equal(cat);
+			Bit eqcat = a[i].equal(categories[j]);
 			Float result_sum = zero.If(eqcat, b[i]);
 			Float result_count = zero.If(eqcat, one);
 		
@@ -102,7 +104,7 @@ void test_average(int party, string inputs[]) {
 	}
 
 	// Reveal averages
-    for(int i = 0; i < ALICE_CAT_LEN; ++i) {
+    for (int i = 0; i < ALICE_CAT_LEN; ++i) {
 		float average = (sums[i] / counts[i]).reveal<double>();
         cout << "average " << i << ": " << average << endl;
 	}
@@ -122,6 +124,8 @@ void test_mode(int party, string inputs[]) {
 	Integer *b = new Integer[INPUT_LEN];
 	Integer frequencies[ALICE_CAT_LEN][BOB_CAT_LEN]; //TODO: change to dynamic size
 	Integer modes[ALICE_CAT_LEN];
+	Integer categories_a [ALICE_CAT_LEN];
+	Integer categories_b [BOB_CAT_LEN];
 
 	// Initialize the secure integers
 	for(int i = 0; i < INPUT_LEN; ++i) {
@@ -135,6 +139,14 @@ void test_mode(int party, string inputs[]) {
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
+	// Initialize categories
+	for(int i = 0; i < ALICE_CAT_LEN; ++i) 
+		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
+
+	
+	for (int i = 0; i < BOB_CAT_LEN; ++i)
+		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
+
 
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
@@ -144,13 +156,11 @@ void test_mode(int party, string inputs[]) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
-			Integer groupby_cat(BITSIZE, j);
-			Bit eq_groupby_cat = a[i].equal(groupby_cat);
+			Bit eq_groupby_cat = a[i].equal(categories_a[j]);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
 			
 			for (int k = 0; k < BOB_CAT_LEN; ++k) {
-				Integer val_cat(BITSIZE, k);
-				Bit eq_val_cat = b[i].equal(val_cat);
+				Bit eq_val_cat = b[i].equal(categories_b[k]);
 				Integer result_val = zero.select(eq_val_cat, result_groupby);
 
 				frequencies[j][k] = frequencies[j][k] + result_val;
@@ -164,8 +174,6 @@ void test_mode(int party, string inputs[]) {
 		Integer max(BITSIZE, 0);
 		Integer mode(BITSIZE, -1);
 		for (int j = 0; j < BOB_CAT_LEN; ++j) {
-			Integer val_cat(BITSIZE, j);
-			
 			Integer freq = frequencies[i][j];
 			Bit geq = freq.geq(max);
 
@@ -174,7 +182,7 @@ void test_mode(int party, string inputs[]) {
 
 			// If max was assigned a new value, we need to update the mode for the group
 			Bit eq_max = freq.equal(max);
-			mode = mode.select(eq_max, val_cat);		
+			mode = mode.select(eq_max, categories_b[j]);		
 		}
 		modes[i] = mode;		
 	}
@@ -202,7 +210,7 @@ int main(int argc, char **argv) {
 	char * ip = nullptr;
 	if(party == BOB) ip = argv[3];
 	char* aggregation = argv[argc - 2];
-	char* filename = argv[argc - 1];		// number is the last argument
+	char* filename = argv[argc - 1];
 	
 	NetIO * io = new NetIO(ip, port);
 	auto ctx = setup_semi_honest(io, party);
@@ -222,29 +230,29 @@ int main(int argc, char **argv) {
 
 
 	switch (aggregation[0]) {
-		case '-sum':
+		case 's':
 			test_sum(party, inputs);
 			break;
-		case '-avg':
+		case 'a':
 			ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
 			test_average(party, inputs);
 			break;
-		case '-mode':
+		case 'm':
 			test_mode(party, inputs);
 			break;
-		case '-var':
+		case 'v':
 			cout << "Variance" << endl;
 			cout << "NOT IMPLEMENTED" << endl;
 			break;
-		case '-std':
+		case 'd':
 			cout << "Standard Deviation" << endl;
 			cout << "NOT IMPLEMENTED" << endl;
 			break;
-		case '-cov':
+		case 'c':
 			cout << "Covariance" << endl;
 			cout << "NOT IMPLEMENTED" << endl;
 			break;
-		case '-pcc':	// related to stdev and covariance
+		case 'p':	// related to stdev and covariance
 			cout << "Pearson Correlation Coefficient" << endl;
 			cout << "NOT IMPLEMENTED" << endl;
 			break;

@@ -1,5 +1,7 @@
 import argparse, random, os, math, errno
 import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 from operator import itemgetter
 
 def create_dirs(program):
@@ -117,7 +119,7 @@ def gen_linreg_input(n, l):
     # Calculate slope (beta_1)
     beta_1 = (l * sum_xy - sum_x * sum_y) / (l * sum_x2 - sum_x ** 2)
 
-    # Calclate intercept (beta_0)
+    # Calculate intercept (beta_0)
     beta_0 = (sum_y - beta_1 * sum_x) / l
     
     # Calculate training error
@@ -127,8 +129,20 @@ def gen_linreg_input(n, l):
         y_pred = beta_0 + beta_1 * x
         squared_errors += (y_true - y_pred) ** 2
 
-    mean_squared_error = squared_errors / l
-    print (f"Expected training error of model: {mean_squared_error}")
+    mse = squared_errors / l
+
+    print("Expected values (manually calculated):")
+    print(f"Intercept (beta_0): {beta_0}; Coefficient 1 (beta_1): {beta_1}")
+    print (f"Expected training error of model: {mse}")
+    print("\n")
+
+    model = LinearRegression()
+    model.fit(np.reshape(features, (-1, 1)), np.reshape(labels, (-1, 1)))
+    y_pred = model.predict(np.reshape(features, (-1, 1)))
+
+    print("Expected values (sklearn):")
+    print(f"Intercept (beta_0): {model.intercept_}; Coefficient 1 (beta_1): {model.coef_}")
+    print(f"Training error sklearn: {mean_squared_error(np.reshape(labels, (-1, 1)), y_pred)}")
 
 
 if __name__ == "__main__":
