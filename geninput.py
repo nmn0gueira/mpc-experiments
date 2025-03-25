@@ -1,8 +1,8 @@
 import argparse, random, os, math, errno
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
 from operator import itemgetter
+
+BASE_DIR = "data/"
 
 def create_dirs(program):
     dirname = "data/"+program
@@ -12,13 +12,26 @@ def create_dirs(program):
         except OSError as e:
             if e.errno != errno.EEXIST: raise
 
+
+def get_data_filepath(program, n, party):
+    return f"{BASE_DIR}{program}/{n}.{party}.dat"
+
+
+def write_to_file(filepath, data):
+    with open(filepath, 'w') as f:
+        for item in data:
+            f.write(f"{item}\n")
+
+
+# If necessary, change this to account for more than 1D arrays
 def get_rand_list(bits, l):
     return [random.getrandbits(bits) for _ in range(l)]
 
 
+# Right now only does 1 column for each party, maybe change later or remove abstraction
 def gen_input(program, n, l, adjust_bit_length=True):
     '''
-    General function for generating the actual numbers for sample programs and handling I/O.
+    General function for generating the actual values for the data used by the sample programs and handling I/O.
 
     Parameters:
     n (int): The max number of bits for a number (not accounting for bit adjustment).
@@ -27,7 +40,7 @@ def gen_input(program, n, l, adjust_bit_length=True):
     numbers which may lead to overflows and such. Should be False when working with smaller bit sizes.
 
     Returns:
-    list[list[int]]: Two lists containg the generated input for each party
+    A tuple of lists, where the first element is the list of numbers for party 1 and the second element is the list of numbers for party 2.
     '''
     if (n > 32):
         print ("invalid bit length---this test can only handle up to 32 bits")
@@ -39,13 +52,15 @@ def gen_input(program, n, l, adjust_bit_length=True):
     if (adjust_bit_length):
         bits = int((n - int(math.log(l, 2))) / 2)
     
-    lists = [(i,get_rand_list(bits,l)) for i in [1,2]]
-    for party,data in lists:
-        with open(f"data/{program}/{n}.{party}.dat"%(program,n,party),'w') as f:
-            for x in data:
-                f.write("%d\n"%x)
+    list_a = get_rand_list(bits, l)
+    list_b = get_rand_list(bits, l)
+    
+    for party, data in zip([1,2], [list_a, list_b]):
+        filepath = get_data_filepath(program, n, party)
+        write_to_file(filepath, data)
+    
+    return list_a, list_b
 
-    return lists
 
 def gen_xtabs_input(n, l):
     '''
@@ -58,45 +73,41 @@ def gen_xtabs_input(n, l):
         print ("because we read in input using `stoi`")
         return
 
-    bits = int((n - int(math.log(l, 2))) / 2)
-
     # Bins/categories must have some repeated items
-    bins_a = get_rand_list(2, l)
-    bins_b = get_rand_list(2, l) # Second bins data file for when computing regular cross tabulation with Bob
-
-    values = get_rand_list(bits, l)
-
-
-    for party, data in zip([1, 2], [bins_a, bins_b]):
-        with open(f"data/xtabs/{n}.bins.{party}.dat",'w') as f:
-            for x in data:
-                f.write(f"{x}\n")
+    categories_a, categories_b = gen_input('xtabs', 2, l, adjust_bit_length=False)
     
-    with open (f"data/xtabs/{n}.vals.2.dat", 'w') as f:
-        for x in values:
-            f.write(f"{x}\n")
+    # Generate numerical data for Bob only
+    bits = int((n - int(math.log(l, 2))) / 2)
+    values = get_rand_list(bits, l)
+    write_to_file(get_data_filepath('xtabs', n, 2), values)
 
+    print_xtabs(categories_a, categories_b, values)
+
+
+def print_xtabs(categories_a, categories_b, values):
     # Expected values by function
     sums = {}
-    for i in range(l):
-        sums[bins_a[i]] = sums.get(bins_a[i], 0) + values[i]
-
     averages = {}
-    for i in range(l):
-        averages[bins_a[i]] = averages.get(bins_a[i], 0) + values[i]
-    for key in averages:
-        averages[key] = averages[key] / bins_a.count(key)
-
-    
     frequencies = {}    # absolute frequencies
-    for i in range(l):
-        frequency_dict = frequencies.get(bins_a[i], {})
-        frequency_dict[bins_b[i]] = frequency_dict.get(bins_b[i], 0) + 1
-        frequencies[bins_a[i]] = frequency_dict
     modes = {}
+    input_len = len(categories_a)
+
+    for i in range(input_len):
+        sums[categories_a[i]] = sums.get(categories_a[i], 0) + values[i]
+
+        averages[categories_a[i]] = averages.get(categories_a[i], 0) + values[i]
+
+        frequency_dict = frequencies.get(categories_a[i], {})
+        frequency_dict[categories_b[i]] = frequency_dict.get(categories_b[i], 0) + 1
+        frequencies[categories_a[i]] = frequency_dict
+
+    for key in averages:
+        averages[key] = averages[key] / categories_a.count(key)
+        
     for k, v in frequencies.items():
         modes[k] = max(v.items(), key=itemgetter(1))[0]
     
+
     print(f"Expected values (sum): {sorted(sums.items())}\n")
     print(f"Expected values (mean): {sorted(averages.items())}\n")
     print(f"Expected values (mode): {sorted(modes.items())}\n")
@@ -113,51 +124,35 @@ def gen_linreg_input(n, l):
         print ("because we read in input using `stoi`")
         return
 
-    bits = int((n - int(math.log(l, 2))) / 2)
-    
-    features = get_rand_list(bits, l)   # x
-    labels = get_rand_list(bits, l)     # y
+    features, labels = gen_input('linreg', n, l)
 
-    for party, data in zip([1,2], [features, labels]):
-        with open(f"data/linreg/{n}.{party}.dat",'w') as f:
-            for x in data:
-                f.write(f"{x}\n")
+    print_linreg(features, labels)
 
-    # Sums
+
+def print_linreg(features, labels):
     sum_x = np.sum(features)
     sum_y = np.sum(labels)
-
-    
     sum_xy = sum(x*y for x,y in zip(features,labels))
     sum_x2 = sum(x**2 for x in features)
-
-    # Calculate slope (beta_1)
-    beta_1 = (l * sum_xy - sum_x * sum_y) / (l * sum_x2 - sum_x ** 2)
-
-    # Calculate intercept (beta_0)
-    beta_0 = (sum_y - beta_1 * sum_x) / l
+    input_size = len(features)
     
-    # Calculate training error
-    squared_errors = 0
-    
-    for x, y_true in zip(features, labels):
-        y_pred = beta_0 + beta_1 * x
-        squared_errors += (y_true - y_pred) ** 2
+    beta_1 = (input_size * sum_xy - sum_x * sum_y) / (input_size * sum_x2 - sum_x ** 2)
+    beta_0 = (sum_y - beta_1 * sum_x) / input_size
 
-    mse = squared_errors / l
+    squared_errors = sum((y_true - (beta_0 + beta_1 * x)) ** 2 for x, y_true in zip(features, labels))
 
-    print("Expected values (manually calculated):")
-    print(f"Intercept (beta_0): {beta_0}; Coefficient 1 (beta_1): {beta_1}")
-    print (f"Expected training error of model: {mse}")
-    print("\n")
+    print(f"Expected intercept (beta_0): {beta_0}")
+    print(f"Expected slope (beta_1): {beta_1}")
+    print(f"Expected training error of model (MSE): {squared_errors / len(features)}")
 
-    model = LinearRegression()
-    model.fit(np.reshape(features, (-1, 1)), np.reshape(labels, (-1, 1)))
-    y_pred = model.predict(np.reshape(features, (-1, 1)))
 
-    print("Expected values (sklearn):")
-    print(f"Intercept (beta_0): {model.intercept_}; Coefficient 1 (beta_1): {model.coef_}")
-    print(f"Training error sklearn: {mean_squared_error(np.reshape(labels, (-1, 1)), y_pred)}")
+def gen_hist2d_input(n, l):
+    if (n > 32):
+        print ("invalid bit length---this test can only handle up to 32 bits")
+        print ("because we read in input using `stoi`")
+        return
+
+    values_a, values_b = gen_input('hist2d', n, l)
 
 
 if __name__ == "__main__":
@@ -167,15 +162,22 @@ if __name__ == "__main__":
         help="integer bit length")
     parser.add_argument('-l', default=10, type=int, 
         help="array length")
-    programs = ["xtabs", "linreg"]
-    parser.add_argument('-e', default="xtabs", choices = programs,
+    
+    PROGRAMS = {
+        "xtabs": gen_xtabs_input,
+        "linreg": gen_linreg_input,
+        "hist2d": gen_hist2d_input
+    }
+
+    parser.add_argument('-e', default="xtabs", choices = PROGRAMS,
         help="program selection")
     args = parser.parse_args()
 
     create_dirs(args.e)
 
-    if args.e == "xtabs":
-        gen_xtabs_input(args.n, args.l)
-    
-    elif args.e == "linreg":
-        gen_linreg_input(args.n, args.l)
+    program_function = PROGRAMS.get(args.e)
+
+    if program_function:
+        program_function(args.n, args.l)
+    else:
+        print(f"Unknown program: {args.e}") # Should not happen
