@@ -7,66 +7,48 @@ using namespace std;
 const int BITSIZE = 32;
 const int INPUT_LEN = 10;
 
+const int NUM_BINS_X = 5;
+const int NUM_BINS_Y = 5;
 
-/**
- * Standard scaler function for scaling the input data.
- */
-void standard_scaler(Float * a, int size) {
-	Float mean = Float();
-	Float std = Float();
-	Float count(size, PUBLIC);
-	for (int i = 0; i < size; ++i)
-		mean = mean + a[i];
 
-	mean = mean / count;
+void calc_extremeties(Float * arr, int size, Float & max, Float & min) {
+	// We need to determine the max and min values to determine the bins for each coordinate
+	for (int i = 0; i < INPUT_LEN; ++i) {
+		// If the value is not less or equal than max_x than it is greater than max_x
+		Bit gt = !arr[i].less_equal(max);
+		max = max.If(gt, arr[i]);
 
-	for (int i = 0; i < size; ++i)
-		std = std + (a[i] - mean).sqr();
-
-	std = (std/count).sqrt();
-
-	for (int i = 0; i < size; ++i)
-		a[i] = (a[i] - mean) / std;
-
-	cout << "Mean: " << mean.reveal<double>() << endl;
-	cout << "Std: " << std.reveal<double>() << endl;
+		Bit lt = arr[i].less_than(min);
+		min = min.If(lt, arr[i]);
+	}
 }
-
+	
 
 /**
  * Single variable linear regression. Assumes Alice has the feature column and Bob has the labels.
  */
-void test_linreg(int party, string inputs[], bool scale=true) {
+void test_hist2d(int party, string inputs[], bool scale=true) {
 	Float *a = new Float[INPUT_LEN];
 	Float *b = new Float[INPUT_LEN];
 	Float input_size = Float(INPUT_LEN, PUBLIC);
-	Float sum_x = Float();
-	Float sum_y = Float();
-	Float sum_xy = Float();
-	Float sum_x2 = Float();
+	Float *bins_x = new Float[NUM_BINS_X];
+	Float *bins_y = new Float[NUM_BINS_Y];
+	Float *hist2d = new Float[NUM_BINS_X * NUM_BINS_Y];
 
 	for (int i = 0; i < INPUT_LEN; ++i) {
 		a[i] = Float(stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}
 
-	if (scale)
-		standard_scaler(a, INPUT_LEN);
+	Float max_x(numeric_limits<float>::min(), PUBLIC);
+	Float min_x(numeric_limits<float>::max(), PUBLIC);
+	Float max_y(numeric_limits<float>::min(), PUBLIC);
+	Float min_y(numeric_limits<float>::max(), PUBLIC);
+	calc_extremeties(a, INPUT_LEN, max_x, min_x);
+	calc_extremeties(b, INPUT_LEN, max_y, min_y);
 
-
-	for (int i = 0; i < INPUT_LEN; ++i) {
-		sum_x = sum_x + a[i];
-		sum_y = sum_y + b[i];
-		sum_xy = sum_xy + (a[i] * b[i]);
-		sum_x2 = sum_x2 + (a[i] * a[i]);
-	}
-	
-	Float beta_1 = (input_size * sum_xy - sum_x * sum_y) / (input_size * sum_x2 - sum_x * sum_x);
-
-	Float beta_0 = (sum_y - beta_1 * sum_x) / input_size;
-
-    cout << "Intercept (beta_0): " << beta_0.reveal<double>() << endl;
-	cout << "Slope (beta_1): " << beta_1.reveal<double>() << endl;
+	cout << "Max x: " << max_x.reveal<double>() << " Min x: " << min_x.reveal<double>() << endl;
+	cout << "Max y: " << max_y.reveal<double>() << " Min y: " << min_y.reveal<double>() << endl;
 }
 
 
@@ -101,7 +83,7 @@ int main(int argc, char **argv) {
 	}
 	infile.close();
 
-	test_linreg(party, inputs);
+	test_hist2d(party, inputs);
 	
 	delete io;
     return 0;

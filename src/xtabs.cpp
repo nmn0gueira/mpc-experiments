@@ -1,10 +1,7 @@
 /**
- * Notes:
- * 1. This program requires the mapping of the categorical variables to group by to an integer range for the functions to be executed. After the
- * functions are executed the same mapping can be reversed, of course.
- * 
- * 2. This program assumes that the input for both parties is already matched (as if each record in order from both parties had the same id) since 
- * the private matching component will not be handled through emp-toolkit.
+ * This program requires the mapping of the categorical variables to group by to an integer range for the functions to be executed. After the
+ * functions are executed the same mapping can be reversed, of course. All functions in this program use at least one categorical variable to 
+ * group by.
  */
 
 #include "emp-sh2pc/emp-sh2pc.h"
@@ -86,7 +83,7 @@ void test_average(int party, string inputs[]) {
 		categories[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
-	// Calculate Averages
+	// Calculate averages
 	Float zero = Float();	// Default party is PUBLIC
 	Float one = Float(1, PUBLIC);
 	for (int i = 0; i < INPUT_LEN; ++i) {
@@ -181,7 +178,7 @@ void test_mode(int party, string inputs[]) {
 
 			// If max was assigned a new value, we need to update the mode for the group
 			Bit eq_max = freq.equal(max);
-			mode = mode.select(eq_max, categories_b[j]);		
+			mode = mode.select(eq_max, categories_b[j]);
 		}
 		modes[i] = mode;		
 	}

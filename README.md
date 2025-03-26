@@ -4,7 +4,7 @@ This repository contains examples of functions implemented using the EMP-toolkit
 to benchmark the performance of the library and to provide a reference for future implementations.
 
 ## Development
-Development was done through a development container using the repositories' `devcontainer.json` file. This will allow you to develop in a consistent environment with all the necessary dependencies.
+Development was done through a development container using the repositories' `devcontainer.json` file along with its Dockerfile. This will allow you to develop in a consistent environment with all the necessary dependencies.
 
 If you want to use the development container, you will need to have Docker installed on your machine and a code editor that supports devcontainers (e.g. Visual Studio Code).
 
@@ -58,8 +58,10 @@ Current functions include:
     - sum (grouping by a single column)
     - average (grouping by a single column)
     - frequency/mode
-- 'linreg': Linear regression. Computes the coefficients of a linear regression model.
+- 'linreg': Linear regression. Computes the coefficients of a linear regression model. By default, uses the standard scaler to scale the data.
 
 ### TBD (for now)
-- 'standard_scaler': Add the standard scaler to the linear regression model as the default option.
-- 'hist_2d': 2D histogram. Computes the frequency of each pair of values in two columns.
+- 'hist2d': 2D histogram. Computes the frequency of each pair of values in two columns.
+
+## Additional Notes
+The programs in this repository all assume that the input for both parties is already matched (as if each record in order from both parties had the same id) since the focus is on the computation itself and not the matching.
