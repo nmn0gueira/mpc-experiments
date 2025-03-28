@@ -59,9 +59,8 @@ Current functions include:
     - average (grouping by a single column)
     - frequency/mode
 - 'linreg': Linear regression. Computes the coefficients of a linear regression model. By default, uses the standard scaler to scale the data.
+- 'hist2d': 2D histogram, also known as a density heatmap. Computed by grouping a set of points in a 2D space into bins and counting the number of points in each bin. The bins are defined by the user and the function will return the counts for each bin (this last part is TBD).
 
-### TBD (for now)
-- 'hist2d': 2D histogram. Computes the frequency of each pair of values in two columns.
 
 ## Additional Notes
 The programs in this repository all assume that the input for both parties is already matched (as if each record in order from both parties had the same id) since the focus is on the computation itself and not the matching.

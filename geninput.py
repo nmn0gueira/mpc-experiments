@@ -164,13 +164,14 @@ def gen_hist2d_input(n, l):
     print_hist2d(values_a, values_b)
 
 
+# RIGHT NOW, THIS WOULD TECHINCALLY REVEAL THE MINIMUM AND MAXIMUM VALUES OF THE INPUT THROUGH THE EDGES (IT IS POSSIBLE TO SIMPLY HIDE THESE)
 def print_hist2d(values_a, values_b):
     NUM_BINS_X = 5
     NUM_BINS_Y = 5
     input_size = len(values_a)
 
-    bins_x = np.linspace(min(values_a), max(values_a), NUM_BINS_X)
-    bins_y = np.linspace(min(values_b), max(values_b), NUM_BINS_Y)
+    bin_edges_x = np.linspace(min(values_a), max(values_a), NUM_BINS_X + 1)
+    bin_edges_y = np.linspace(min(values_b), max(values_b), NUM_BINS_Y + 1)
 
     histogram = [[0] * (NUM_BINS_Y) for _ in range(NUM_BINS_X)]
     
@@ -178,36 +179,26 @@ def print_hist2d(values_a, values_b):
         x_val = values_a[i]
         y_val = values_b[i]
         
-        x_index = None
-        y_index = None
-        
-        for i, x_bin in enumerate(bins_x):
-            if x_val < x_bin:
-                x_index = i
-                break
-        
-        for i, y_bin in enumerate(bins_y):
-            if y_val < y_bin:
-                y_index = i
-                break
-        
-        if x_index is not None and y_index is not None:
-            histogram[x_index][y_index] += 1
-    
+        x_index = np.digitize(x_val, bin_edges_x[:-1]) - 1
+        y_index = np.digitize(y_val, bin_edges_y[:-1]) - 1
+
+        histogram[x_index][y_index] += 1
+
     print("2D Histogram (Text Representation):")
-    
+
     # Print the y-axis labels (bin edges)
     print("    ", end="")
-    for y_bin in bins_y:
-        print(f"{y_bin:>5}", end=" ")
+    for x_bin in bin_edges_x:
+        print(f"{round(x_bin, 2):>5}", end=" ")
     print()
     
     # Print the histogram rows
     for i, row in enumerate(histogram):
-        print(f"{bins_x[i]:>5} ", end="")  # Print x-axis labels (bin edges)
+        print(f"{round(bin_edges_y[i], 2):>5} ", end="")  # Print x-axis labels (bin edges)
         for count in row:
             print(f"{count:>5}", end=" ")  # Print the counts for each bin
         print()
+    print(f"{round(bin_edges_y[-1], 2):>5} ", end="")  # Print x-axis labels (bin edges)
 
 
 if __name__ == "__main__":

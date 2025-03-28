@@ -55,6 +55,9 @@ void test_sum(int party, string inputs[]) {
     for (int i = 0; i < ALICE_CAT_LEN; ++i) {
         cout << "sum " << i << ": " << sums[i].reveal<int>() << endl;
    }
+
+   delete[] a;
+   delete[] b;
 }
 
 
@@ -105,6 +108,9 @@ void test_average(int party, string inputs[]) {
 		float average = (sums[i] / counts[i]).reveal<double>();
         cout << "average " << i << ": " << average << endl;
 	}
+
+	delete[] a;
+	delete[] b;
 }
 
 
@@ -190,6 +196,9 @@ void test_mode(int party, string inputs[]) {
 		}
 		cout << "mode of group " << i << ": " << modes[i].reveal<int>() << endl;
 	}
+
+	delete[] a;
+	delete[] b;
 }
 
 

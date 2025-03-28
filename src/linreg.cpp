@@ -67,6 +67,9 @@ void test_linreg(int party, string inputs[], bool scale=true) {
 
     cout << "Intercept (beta_0): " << beta_0.reveal<double>() << endl;
 	cout << "Slope (beta_1): " << beta_1.reveal<double>() << endl;
+
+	delete[] a;
+	delete[] b;
 }
 
 
