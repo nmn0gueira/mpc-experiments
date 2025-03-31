@@ -5,7 +5,6 @@ using namespace emp;
 using namespace std;
 
 const int BITSIZE = 32;
-const int INPUT_LEN = 10;
 
 const int NUM_BINS_X = 5;
 const int NUM_BINS_Y = 5;
@@ -23,7 +22,7 @@ void calc_extremeties(Float * arr, int size, Float & min, Float & max) {
 	}
 }
 
-void linspace(Float * arr, int size, Float & min, Float & max) {
+void linspace(Float * arr, int size, Float min, Float max) {
 	Float step = (max - min) / Float(size - 1, PUBLIC);
 	arr[0] = min;
 	for (int i = 1; i < size - 1; ++i) {
@@ -35,7 +34,7 @@ void linspace(Float * arr, int size, Float & min, Float & max) {
 
 /**
  * Although the naming is borrowed from np.digitize, the functionality is slightly different. This function
- * takes bin edges as input and returns an index adjusted for zero-indexing.
+ * takes bin edges as input and "returns" an index adjusted for zero-indexing.
  */
 void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integer & bin_to_index) {
 	static Bit false_bit = Bit();
@@ -58,35 +57,35 @@ void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integ
  * Items are placed in bins according to the formula bin[i-1] < x <= bin[i]. This function computes a 2d histogram with the aggregation performed
  * being a count. In the feature this could be any sort of aggregation ig, like in xtabs.
  */
-void test_hist2d(int party, string inputs[]) {
-	Float *a = new Float[INPUT_LEN];
-	Float *b = new Float[INPUT_LEN];
+void test_hist2d(int party, string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
+	Float *a = new Float[input_len];
+	Float *b = new Float[input_len];
 
-	int num_edges_x = NUM_BINS_X + 1;
-	int num_edges_y = NUM_BINS_Y + 1;
+	int num_edges_x = num_bins_x + 1;
+	int num_edges_y = num_bins_y + 1;
 	Float *bin_edges_x = new Float[num_edges_x];
 	Float *bin_edges_y = new Float[num_edges_y];
 
-	Integer *bins_x = new Integer[NUM_BINS_X];
-	Integer *bins_y = new Integer[NUM_BINS_Y];
-	Integer *hist2d = new Integer[NUM_BINS_Y * NUM_BINS_X];
+	Integer *bins_x = new Integer[num_bins_x];
+	Integer *bins_y = new Integer[num_bins_y];
+	Integer *hist2d = new Integer[num_bins_y * num_bins_x];
 
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		a[i] = Float(stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}
 
-	for (int i = 0; i < NUM_BINS_X; ++i) {
+	for (int i = 0; i < num_bins_x; ++i) {
 		bins_x[i] = Integer(BITSIZE, i , PUBLIC);
 	}
 
-	for (int i = 0; i < NUM_BINS_Y; ++i) {
+	for (int i = 0; i < num_bins_y; ++i) {
 		bins_y[i] = Integer(BITSIZE, i , PUBLIC);
 	}
 
-	for (int y = 0; y < NUM_BINS_Y; ++y) {
-		for (int x = 0; x < NUM_BINS_X; ++x) {
-			hist2d[y * NUM_BINS_X + x] = Integer(BITSIZE, 0);
+	for (int y = 0; y < num_bins_y; ++y) {
+		for (int x = 0; x < num_bins_x; ++x) {
+			hist2d[y * num_bins_x + x] = Integer(BITSIZE, 0);
 		}
 	}
 
@@ -94,15 +93,15 @@ void test_hist2d(int party, string inputs[]) {
 	Float min_x(numeric_limits<float>::max(), PUBLIC);
 	Float max_y(numeric_limits<float>::min(), PUBLIC);
 	Float min_y(numeric_limits<float>::max(), PUBLIC);
-	calc_extremeties(a, INPUT_LEN, min_x, max_x);
-	calc_extremeties(b, INPUT_LEN, min_y, max_y);
+	calc_extremeties(a, input_len, min_x, max_x);
+	calc_extremeties(b, input_len, min_y, max_y);
 
 	linspace(bin_edges_x, num_edges_x, min_x, max_x);
 	linspace(bin_edges_y, num_edges_y, min_y, max_y);
 
 	Integer zero(BITSIZE, 0);
 	Integer one(BITSIZE, 1);
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		Float x_val = a[i];
 		Float y_val = b[i];
 		Integer x_bin(BITSIZE, 0, PUBLIC);
@@ -113,9 +112,9 @@ void test_hist2d(int party, string inputs[]) {
 		digitize(y_val, bins_y, bin_edges_y, num_edges_y, y_bin);
 
 		// Update histogram
-		for (int y = 0; y < NUM_BINS_Y; ++y) {
-			for (int x = 0; x < NUM_BINS_X; ++x) {
-				int hist_index = y * NUM_BINS_X + x;
+		for (int y = 0; y < num_bins_y; ++y) {
+			for (int x = 0; x < num_bins_x; ++x) {
+				int hist_index = y * num_bins_x + x;
 
 				Bit eq_x = x_bin.equal(bins_x[x]);
 				Bit eq_y = y_bin.equal(bins_y[y]);
@@ -137,11 +136,15 @@ void test_hist2d(int party, string inputs[]) {
 		cout << "Bin Edge y (" << i << "): " << bin_edges_y[i].reveal<double>() << endl;
 	}
 
-	for (int y = 0; y < NUM_BINS_Y; ++y) {
-		for (int x = 0; x < NUM_BINS_X; ++x) {
-			cout << "Hist2d (" << x << ", " << y << "): " << hist2d[y * NUM_BINS_X + x].reveal<int>() << endl;
+	int total_sum = 0;
+	for (int y = 0; y < num_bins_y; ++y) {
+		for (int x = 0; x < num_bins_x; ++x) {
+			int hist_value =  hist2d[y * num_bins_x + x].reveal<int>();
+			total_sum += hist_value;
+			cout << "Hist2d (" << x << ", " << y << "): " << hist_value << endl;
 		}
 	}
+	cout << "Total elements check: " << total_sum << endl;
 
 	delete[] a;
 	delete[] b;
@@ -176,13 +179,18 @@ int main(int argc, char **argv) {
 		return 1;
     }
 	
-	string inputs[INPUT_LEN];
-	for(int i = 0; i < INPUT_LEN; i++) {
-		getline(infile, inputs[i]);
+	vector<string> inputs;
+	string line;
+	while(getline(infile, line)) {
+		inputs.push_back(line);
 	}
 	infile.close();
 
-	test_hist2d(party, inputs);
+	auto start = chrono::high_resolution_clock::now();
+	test_hist2d(party, inputs.data(), inputs.size());
+	auto end = chrono::high_resolution_clock::now();
+	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+	cout << "Execution time of hist2d with: " << inputs.size() << " elements: " << duration << " ms" << endl;
 	
 	delete io;
     return 0;

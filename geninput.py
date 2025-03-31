@@ -73,15 +73,10 @@ def gen_xtabs_input(n, l):
         print ("because we read in input using `stoi`")
         return
 
-    # Bins/categories must have some repeated items
     categories_a, categories_b = gen_input('xtabs', 2, l, adjust_bit_length=False)
-    
-    # Generate numerical data for Bob only
-    bits = int((n - int(math.log(l, 2))) / 2)
-    values = get_rand_list(bits, l)
-    write_to_file(get_data_filepath('xtabs', n, 2), values)
+    values_a, values_b = gen_input('xtabs', n, l)
 
-    print_xtabs(categories_a, categories_b, values)
+    print_xtabs(categories_a, categories_b, values_b)
 
 
 def print_xtabs(categories_a, categories_b, values):
@@ -164,7 +159,6 @@ def gen_hist2d_input(n, l):
     print_hist2d(values_a, values_b)
 
 
-# RIGHT NOW, THIS WOULD TECHINCALLY REVEAL THE MINIMUM AND MAXIMUM VALUES OF THE INPUT THROUGH THE EDGES (IT IS POSSIBLE TO SIMPLY HIDE THESE)
 def print_hist2d(values_a, values_b):
     NUM_BINS_X = 5
     NUM_BINS_Y = 5
@@ -179,8 +173,19 @@ def print_hist2d(values_a, values_b):
         x_val = values_a[i]
         y_val = values_b[i]
         
-        x_index = np.digitize(x_val, bin_edges_x[:-1]) - 1
-        y_index = np.digitize(y_val, bin_edges_y[:-1]) - 1
+        x_index = 0
+        y_index = 0
+
+        # Formula for binning is bin[i-1] < x <= bin[i]
+        for x_i in range(1, len(bin_edges_x)):
+            if x_val <= bin_edges_x[x_i]:
+                x_index = x_i - 1 # bin index
+                break
+        
+        for y_i in range(1, len(bin_edges_y)):
+            if y_val <= bin_edges_y[y_i]:
+                y_index = y_i - 1 # bin index
+                break
 
         histogram[x_index][y_index] += 1
 

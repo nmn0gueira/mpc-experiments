@@ -11,7 +11,6 @@ using namespace emp;
 using namespace std;
 
 const int BITSIZE = 32;
-const int INPUT_LEN = 10;
 const int ALICE_CAT_LEN = 4;
 const int BOB_CAT_LEN = 4;
 
@@ -19,14 +18,14 @@ const int BOB_CAT_LEN = 4;
 /**
  * Simplest of the functions
  */
-void test_sum(int party, string inputs[]) {
-	Integer *a = new Integer[INPUT_LEN];
-	Integer *b = new Integer[INPUT_LEN];
+void test_sum(int party, string inputs[], int input_len) {
+	Integer *a = new Integer[input_len];
+	Integer *b = new Integer[input_len];
 	Integer sums [ALICE_CAT_LEN];		// TODO: change to dynamic size
 	Integer categories [ALICE_CAT_LEN];
 
 	// Initialize the secure integers
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
 		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
 	}
@@ -39,7 +38,7 @@ void test_sum(int party, string inputs[]) {
 
 	// Calculate sums
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
@@ -65,21 +64,19 @@ void test_sum(int party, string inputs[]) {
  * For the average function, we need to use emp::Float types instead of emp::Integer types for the final results if we want precision in the 
  * averages (otherwise we can use just integer division ig).
  */
-void test_average(int party, string inputs[]) {
+void test_average(int party, string inputs[], int input_len) {
 	// CAN POTENTIALLY BE OPTIMIZED BY REVEALING THE SUM AND COUNT ALLOWING TO WORK WITH ONLY INTEGERS AND MAKING THE FLOAT DIVISION IN CLEARTEXT.
-	Integer *a = new Integer[INPUT_LEN];
-	Float *b = new Float[INPUT_LEN];
+	Integer *a = new Integer[input_len];
+	Float *b = new Float[input_len];
 	Float sums [ALICE_CAT_LEN];		// TODO: change to dynamic size
 	Float counts [ALICE_CAT_LEN];	// TODO: change to dynamic size
 	Integer categories [ALICE_CAT_LEN];
 
-	// Initialize the secure integers
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}	
 
-	// Initialize sums and counts
 	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
 		sums[i] = Float();
 		counts[i] = Float();
@@ -89,7 +86,7 @@ void test_average(int party, string inputs[]) {
 	// Calculate averages
 	Float zero = Float();	// Default party is PUBLIC
 	Float one = Float(1, PUBLIC);
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
@@ -121,16 +118,16 @@ void test_average(int party, string inputs[]) {
  * Note: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
  * one displayed.
  */
-void test_mode(int party, string inputs[]) {
-	Integer *a = new Integer[INPUT_LEN];
-	Integer *b = new Integer[INPUT_LEN];
+void test_mode(int party, string inputs[], int input_len) {
+	Integer *a = new Integer[input_len];
+	Integer *b = new Integer[input_len];
 	Integer frequencies[ALICE_CAT_LEN][BOB_CAT_LEN]; //TODO: change to dynamic size
 	Integer modes[ALICE_CAT_LEN];
 	Integer categories_a [ALICE_CAT_LEN];
 	Integer categories_b [BOB_CAT_LEN];
 
 	// Initialize the secure integers
-	for(int i = 0; i < INPUT_LEN; ++i) {
+	for(int i = 0; i < input_len; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
 		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
 	}
@@ -153,7 +150,7 @@ void test_mode(int party, string inputs[]) {
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	Integer one (BITSIZE, 1);
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
@@ -227,23 +224,25 @@ int main(int argc, char **argv) {
 		return 1;
     }
 	
-	string inputs[INPUT_LEN];
-	for(int i = 0; i < INPUT_LEN; i++) {
-		getline(infile, inputs[i]);
+	vector<string> inputs;
+	string line;
+	while(getline(infile, line)) {
+		inputs.push_back(line);
 	}
 	infile.close();
 
 
+	auto start = chrono::high_resolution_clock::now();
 	switch (aggregation[0]) {
 		case 's':
-			test_sum(party, inputs);
+			test_sum(party, inputs.data(), inputs.size());
 			break;
 		case 'a':
 			ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
-			test_average(party, inputs);
+			test_average(party, inputs.data(), inputs.size());
 			break;
 		case 'm':
-			test_mode(party, inputs);
+			test_mode(party, inputs.data(), inputs.size());
 			break;
 		case 'v':
 			cout << "Variance" << endl;
@@ -265,6 +264,9 @@ int main(int argc, char **argv) {
 			cout << "Invalid aggregation type" << endl;
 			break;
 	}
+	auto end = chrono::high_resolution_clock::now();
+	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+	cout << "Execution time of xtabs (" << aggregation[0] << ") with: " << inputs.size() << " elements: " << duration << " ms" << endl;
 	
 	delete io;
     return 0;

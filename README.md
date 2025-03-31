@@ -53,14 +53,24 @@ And the following for Bob:
 ## Example functions
 
 Current functions include:
- - 'millionaire': Determine which of two numbers is larger. Basic control test program.
- - 'xtabs': Computation of cross-tabulation/pivot table. Groups by a column or more and computes an aggregation on the values of another column. Current aggregations include: 
+ - `millionaire`: Determine which of two numbers is larger. Basic control test program.
+ - `xtabs`: Computation of cross-tabulation/pivot table. Groups by a column or more and computes an aggregation on the values of another column. Current aggregations include: 
     - sum (grouping by a single column)
     - average (grouping by a single column)
     - frequency/mode
-- 'linreg': Linear regression. Computes the coefficients of a linear regression model. By default, uses the standard scaler to scale the data.
-- 'hist2d': 2D histogram, also known as a density heatmap. Computed by grouping a set of points in a 2D space into bins and counting the number of points in each bin. The bins are defined by the user and the function will return the counts for each bin (this last part is TBD).
+- `linreg`: Linear regression. Computes the coefficients of a linear regression model. By default, uses the standard scaler to scale the data.
+- `hist2d`: 2D histogram, also known as a density heatmap. Computed by grouping a set of points in a 2D space into bins and counting the number of points in each bin. The bins are defined by the user and the function will return the counts for each bin (**this last part is TBD**).
 
+
+## Potential Additions
+- `filter`: A universal filtering function that allows to filter a dataset based on a set of conditions.
+- `nan_handling`: A function to handle NaN values in a dataset.
+
+## Potential Extensions
+- `hist2d`: 
+    - Extend it to `histnd` an N-dimensional histogram. 
+    - Implement other aggregations for it, such as mean
+    - Change the usage of floats to integers trading a potential slight loss of precision in the binning for a more efficient computation.
 
 ## Additional Notes
-The programs in this repository all assume that the input for both parties is already matched (as if each record in order from both parties had the same id) since the focus is on the computation itself and not the matching.
+The programs in this repository all assume that the input for both parties is already matched (as if each record in order from both parties had the same ID) since the focus is on the computation itself and not the matching.

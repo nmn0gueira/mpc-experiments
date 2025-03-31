@@ -5,8 +5,6 @@ using namespace emp;
 using namespace std;
 
 const int BITSIZE = 32;
-const int INPUT_LEN = 10;
-
 
 /**
  * Standard scaler function for scaling the input data.
@@ -36,25 +34,25 @@ void standard_scaler(Float * a, int size) {
 /**
  * Single variable linear regression. Assumes Alice has the feature column and Bob has the labels.
  */
-void test_linreg(int party, string inputs[], bool scale=true) {
-	Float *a = new Float[INPUT_LEN];
-	Float *b = new Float[INPUT_LEN];
-	Float input_size = Float(INPUT_LEN, PUBLIC);
+void test_linreg(int party, string inputs[], int input_len, bool scale=true) {
+	Float *a = new Float[input_len];
+	Float *b = new Float[input_len];
+	Float input_size = Float(input_len, PUBLIC);
 	Float sum_x = Float();
 	Float sum_y = Float();
 	Float sum_xy = Float();
 	Float sum_x2 = Float();
 
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		a[i] = Float(stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}
 
 	if (scale)
-		standard_scaler(a, INPUT_LEN);
+		standard_scaler(a, input_len);
 
 
-	for (int i = 0; i < INPUT_LEN; ++i) {
+	for (int i = 0; i < input_len; ++i) {
 		sum_x = sum_x + a[i];
 		sum_y = sum_y + b[i];
 		sum_xy = sum_xy + (a[i] * b[i]);
@@ -98,13 +96,18 @@ int main(int argc, char **argv) {
 		return 1;
     }
 	
-	string inputs[INPUT_LEN];
-	for(int i = 0; i < INPUT_LEN; i++) {
-		getline(infile, inputs[i]);
+	vector<string> inputs;
+	string line;
+	while(getline(infile, line)) {
+		inputs.push_back(line);
 	}
 	infile.close();
 
-	test_linreg(party, inputs);
+	auto start = chrono::high_resolution_clock::now();
+	test_linreg(party, inputs.data(), inputs.size());
+	auto end = chrono::high_resolution_clock::now();
+	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+	cout << "Execution time of linreg with: " << inputs.size() << " elements: " << duration << " ms" << endl;
 	
 	delete io;
     return 0;
