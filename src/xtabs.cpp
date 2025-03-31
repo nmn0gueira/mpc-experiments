@@ -65,7 +65,6 @@ void test_sum(int party, string inputs[], int input_len) {
  * averages (otherwise we can use just integer division ig).
  */
 void test_average(int party, string inputs[], int input_len) {
-	// CAN POTENTIALLY BE OPTIMIZED BY REVEALING THE SUM AND COUNT ALLOWING TO WORK WITH ONLY INTEGERS AND MAKING THE FLOAT DIVISION IN CLEARTEXT.
 	Integer *a = new Integer[input_len];
 	Float *b = new Float[input_len];
 	Float sums [ALICE_CAT_LEN];		// TODO: change to dynamic size

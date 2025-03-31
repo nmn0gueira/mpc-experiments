@@ -62,15 +62,24 @@ Current functions include:
 - `hist2d`: 2D histogram, also known as a density heatmap. Computed by grouping a set of points in a 2D space into bins and counting the number of points in each bin. The bins are defined by the user and the function will return the counts for each bin (**this last part is TBD**).
 
 
-## Potential Additions
+## Potential Improvements
+### Functions
 - `filter`: A universal filtering function that allows to filter a dataset based on a set of conditions.
 - `nan_handling`: A function to handle NaN values in a dataset.
 
-## Potential Extensions
+### Extensions
 - `hist2d`: 
-    - Extend it to `histnd` an N-dimensional histogram. 
-    - Implement other aggregations for it, such as mean
+    - Extend it to `histnd`, an N-dimensional histogram. 
+    - Implement other aggregations for it, such as the mean.
+
+### Optimizations
+- `xtabs`: 
+    - The `average` function can be optimized by revealing the sum and count, allowing not only working with only integers for the circuit but also not needing to do the division inside the circuit.
+- `linreg`:
+    - As of now, I do not know yet if the current implementation is as optimal as can be in a boolean circuit.
+- `hist2d`:
     - Change the usage of floats to integers trading a potential slight loss of precision in the binning for a more efficient computation.
+
 
 ## Additional Notes
 The programs in this repository all assume that the input for both parties is already matched (as if each record in order from both parties had the same ID) since the focus is on the computation itself and not the matching.
