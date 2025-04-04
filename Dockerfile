@@ -2,7 +2,7 @@
 
 # Image built from .devcontainer/Dockerfile
 ARG os_release="latest"
-ARG emp_image="nmn0gueira/ubuntu-emp:0.2.5"
+ARG emp_image="nmn0gueira/ubuntu-emp:latest"
 
 FROM ${emp_image} AS emp
 
@@ -18,8 +18,8 @@ WORKDIR /root
 COPY --from=emp /usr/local/. /usr/local/.
 
 # Copy source code and install
-COPY . /emp-proto
-WORKDIR /emp-proto/build
+COPY . /emp-test
+WORKDIR /emp-test/build
 RUN cmake .. \
 	&& make
 
