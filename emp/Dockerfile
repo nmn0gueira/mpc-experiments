@@ -2,7 +2,7 @@
 
 # Image built from .devcontainer/Dockerfile
 ARG os_release="latest"
-ARG emp_image="nmn0gueira/ubuntu-emp:latest"
+ARG emp_image="nmn0gueira/emp-dev:latest"
 
 FROM ${emp_image} AS emp
 
