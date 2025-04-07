@@ -1,5 +1,5 @@
 # EMP-toolkit
-EMP-toolkit is a C++ library for secure two-party computation (2PC) based on the Yao's garbled circuits protocol.
+[EMP-toolkit](https://github.com/emp-toolkit) is a set of MPC frameworks based on garbled circuits written in C++ and used as libraries. This repository tests the [semi-honest implementation of Yao](https://github.com/emp-toolkit/emp-sh2pc) (`sh2pc`).
 
 ## Development
 Development was done through a development container using the repositories' `devcontainer.json` file along with its Dockerfile. This will allow you to develop in a consistent environment with all the necessary dependencies.
@@ -11,7 +11,7 @@ Otherwise, you will need Ubuntu 24.04 and the required dependencies on your mach
 - cmake
 - build-essential
 - libssl-dev
-- emp-toolkit (emp-tool, emp-ot, emp-sh2pc, emp-ag2pc)
+- emp-toolkit (emp-tool, emp-ot, emp-sh2pc)
 
 
 ## Compilation
@@ -64,3 +64,7 @@ This sections includes work that has not been completed yet for this particular 
     - As of now, I do not know yet if the current implementation is as optimal as can be in a boolean circuit.
 - `hist2d`:
     - Change the usage of floats to integers trading a potential slight loss of precision in the binning for a more efficient computation.
+
+### Additions
+- `ag2pc`:
+	- Add testing for the maliciously secure protocol with authenticated garbling.
