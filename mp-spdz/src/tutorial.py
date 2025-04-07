@@ -3,6 +3,7 @@ from Compiler.library import print_ln, print_float_precision, for_range, for_ran
 from Compiler.compilerLib import Compiler
 
 compiler = Compiler()
+#program = Program(compiler.args)
 
 def test(actual, expected):
     # you can reveal a number in order to print it
@@ -13,6 +14,8 @@ def test(actual, expected):
 
 @compiler.register_function('tutorial')
 def main():
+    #compiler.prog.use_edabit(True) 
+
     # sint: secret integers
     # see also https://mp-spdz.readthedocs.io/en/latest/Compiler.html#Compiler.types.sint
 

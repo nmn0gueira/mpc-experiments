@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -ex
+
+python_script=$1
+MP_SPDZ_PATH="MP-SPDZ"
+
+if [ -z "$python_script" ]; then
+    echo "Usage: $0 <python_script> <protocol_options> <program_args>"
+    exit 1
+fi
+
+# This shift is to remove the first argument (the python script name)
+shift
+
+cp src/${python_script} $MP_SPDZ_PATH/${python_script}
+
+cd $MP_SPDZ_PATH
+
+python $python_script $@
