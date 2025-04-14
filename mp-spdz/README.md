@@ -19,7 +19,7 @@ To run the programs, you will need to setup sample data. You can do this by runn
 ```bash
 ./setup_data.sh -g -c <program>
 ```
-where `-g` is the flag to generate the data, `-c` is the flag to copy the data to the `MP-SPDZ/Player-Data` directory, and `<program>` is the name of the program you want to run that is in the `src` folder. The script will create a folder with the name of the program in the `data` directory and copy the generated data there.
+where `-g` and `-c` are optional flags to generate the data and copy it to `MP-SPDZ/Player-Data`, respectively, and `<program>` is the name of the program you want to setup the data for.
 
 ### Compiling
 To run a program, you will first need to compile it. You can do this by running the `compile.sh` script:
