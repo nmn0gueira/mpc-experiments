@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 python_script=$1
 MP_SPDZ_PATH="MP-SPDZ"

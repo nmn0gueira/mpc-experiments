@@ -27,10 +27,6 @@ done
 shift $((OPTIND - 1))
 
 program_name=$1
-if [ -z "$program_name" ]; then
-    echo "Error: Program name is required"
-    usage
-fi
 
 if [ "$generate" = true ]; then
     echo "Generated data for <$program_name>"
