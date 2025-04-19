@@ -1,8 +1,9 @@
-from Compiler.types import sint, Array, Matrix
 from Compiler.library import print_ln, for_range_opt, for_range, for_range_parallel
 from Compiler.compilerLib import Compiler
+from Compiler.GC.types import sbits, sbitintvec, sbitvec
 
 CAT_LEN = 4
+BITSIZE = 32
 
 def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
@@ -18,33 +19,25 @@ if not compiler.options.rows:
 #    compiler.parser.error("--columns required")
 
 
-@compiler.register_function('xtabs')
+@compiler.register_function('xtabs-gc')
 def main():
     max_rows = int(compiler.options.rows)
 
-    data = Matrix(max_rows, 2, sint)
+    siv32 = sbitintvec.get_type(max_rows)
 
-    data.assign_all(-1)
+    sb32 = sbits.get_type(BITSIZE)
+    sums = siv32([sb32(0) for _ in range(CAT_LEN)]).elements()
+    categories = siv32([sb32(i) for i in range(CAT_LEN)]).elements()
 
-    #@for_range(input_size)
-    @for_range_parallel(2, max_rows)
-    def _(i):
-        data[i][0] = sint.get_input_from(0)
-        data[i][1] = sint.get_input_from(1)
-
-    sums = Array(CAT_LEN, sint)
-    sums.assign_all(0)
-    categories = Array(CAT_LEN, sint)
-    for i in range(CAT_LEN):
-        categories[i] = sint(i)
-
-    @for_range_opt([max_rows, CAT_LEN]) # This is a nested loop
-    def _(i, j):
-        sums[j] = mux(data[i][0] == categories[j], sums[j] + data[i][1], sums[j])
+    for i in range(max_rows):
+        a = sbits.get_input_from(0, BITSIZE)
+        b = sbits.get_input_from(1, BITSIZE)
+        for j in range(CAT_LEN):
+            sums[j] = mux(a == categories[j], sums[j] + b, sums[j])
 
 
     for i in range(CAT_LEN):
-        print_ln("Category %s: %s", i, sums[i].reveal())
+       print_ln("Category %s: %s", i, sums[i].reveal())
 
 if __name__ == "__main__":
     compiler.compile_func()
