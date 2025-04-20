@@ -44,6 +44,5 @@ where `<protocol_script>` is the bash script of the protocol that you want to ru
 - Fix installing from source (might need it if I need to change some parameters for certain protocols)
 
 ### Potential Optimizations
-- Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters (I believe)
+- Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters
 - Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually.
-- There are also different ways to do non-linear computation that can be decided upon before compilation.
