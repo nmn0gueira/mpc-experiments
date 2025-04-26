@@ -45,4 +45,16 @@ where `<protocol_script>` is the bash script of the protocol that you want to ru
 
 ### Potential Optimizations
 - Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters
-- Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually.
+- Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually. The current supported protocols are `mascot`, `cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`. Check MP-SPDZ docs for more info,
+
+
+#### Cross-tabulation (Sum)
+- Decide if it is better to either: 
+	1. Use the first input of one party as the number of categories and the first input of another to be the input size and only compile once. 
+		1. Pros: Only compiles once
+		2. Cons: Still requires specifying a max size when compiling.
+        3. Notes: If choosing this one have the groupby column and values column provider given in public input if possible.
+	2. Have both input size and number of categories as specified compiler args and compile each time it is needed
+		1. Pros: Input size is known at compile time
+		2. Cons: Compiling more than once
+        3. Notes: If choosing this one have the groupby column and values column provider given in the compiler args.
