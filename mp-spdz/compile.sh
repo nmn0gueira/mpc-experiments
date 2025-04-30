@@ -19,7 +19,7 @@ cd $MP_SPDZ_PATH
 
 start_time=$(date +%s.%N)
 
-python $python_script $@
+pypy3 $python_script $@
 
 end_time=$(date +%s.%N)
 execution_time=$(echo "$end_time - $start_time" | bc)
