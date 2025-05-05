@@ -39,14 +39,21 @@ where `<protocol_script>` is the bash script of the protocol that you want to ru
 
 > Keep in mind that this script is for running in localhost only. To run the compiled program in a distributed environment, you will need to go to the MP-SPDZ directory on each machine and run the compiled program with the preferred protocol binary (.e.g. `./mascot-party.x`).
 
+#### Optional Arguments
+From the MP-SPDZ documentation, there are a few optional arguments that can be passed to protocol binaries that change aspects of the protocol. These include:
+- `--bucket-size`: In some malicious binary computation and malicious edaBit generation, a smaller bucket size allows preprocessing in smaller batches at a higher asymptotic cost.
+- `--batch-size`: Preprocessing in smaller batches avoids generating too much but larger batches save communication rounds.
+- `--direct`: In protocols with any number of parties, direct communication instead of star-shaped saves communication rounds at the expense of a quadratic amount. This might be beneficial with a small number of parties.
+- `--bits-from-squares`: In some protocols computing modulo a prime (Shamir, Rep3, SPDZ-wise), this switches from generating random bits via XOR of parties’ inputs to generation using the root of a random square.
+
+
 ## TBD
 ### Fixes
-- Fix installing from source (might need it if I need to change some parameters for certain protocols)
+- Fix installing from source (might need it if I need to change some parameters for certain protocols). See compilation section in the MP-SPDZ documentation.
 
 ### Potential Optimizations
 - Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters
 - Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually. The current supported protocols are `mascot`, `cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`. Check MP-SPDZ docs for more info,
-
 
 #### Cross-tabulation (Sum)
 - Decide if it is better to either: 
