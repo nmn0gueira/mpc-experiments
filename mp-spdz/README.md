@@ -48,12 +48,10 @@ From the MP-SPDZ documentation, there are a few optional arguments that can be p
 
 
 ## TBD
-### Fixes
-- Fix installing from source (might need it if I need to change some parameters for certain protocols). See compilation section in the MP-SPDZ documentation.
-
 ### Potential Optimizations
 - Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters
 - Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually. The current supported protocols are `mascot`, `cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`. Check MP-SPDZ docs for more info,
+- Check cheat sheet for other optimizations.
 
 #### Cross-tabulation (Sum)
 - Decide if it is better to either: 
