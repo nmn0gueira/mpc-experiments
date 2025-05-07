@@ -3,48 +3,65 @@ MP-SPDZ implements a large number of secure multi-party computation (MPC) protoc
 
 The source-code is available on [Github](https://github.com/data61/MP-SPDZ) and it also provides [additional documentation online](https://mp-spdz.readthedocs.io/en/latest/).
 
-## Installation
+To test the sample programs, you will need to either: 
+1. Install MP-SPDZ using a binary or source distribution and run the programs locally (potentially using a dev container) - better for rapid testing.
+2. Use the root Dockerfile to run the programs in a container - better for testing in a distributed environment and for production while keeping the environment clean.
+
+## Binary or Source Distribution
 To setup the environment, you can either use the dev container with the provided Dockerfile or install the required dependencies (listed in the Dockefile) manually.
 
+### Installation
 After setting up your environment, you can run the installation script to install MP-SPDZ:
 ```bash	
 ./install.sh <fromsource>
 ```
-where `<fromsource>` is either `yes` or `no`.
+where `<fromsource>` is either `yes` or `no`. Note that building from source will take longer.
 
+### Usage
+To simplify the usage of MP-SPDZ locally while keep the environment uncluttered, a few are provided to scripts to help with the data setup, compilation, and running of the programs. The scripts are located in the `scripts` folder.
 
-## Usage
-### Setup Data
+#### Setup Data
 To run the programs, you will need to setup sample data. You can do this by running the `setup_data.sh` script:
 ```bash
-./setup_data.sh -g -c <program>
+scripts/setup_data.sh -g -c <program>
 ```
 where `-g` and `-c` are optional flags to generate the data and copy it to `MP-SPDZ/Player-Data`, respectively, and `<program>` is the name of the program you want to setup the data for.
 
-### Compiling
+#### Compiling
 To run a program, you will first need to compile it. You can do this by running the `compile.sh` script:
 ```bash	
-./compile.sh <program> <protocol_options> <program_args>
+scripts/compile.sh <program> <protocol_options> <program_args>
 ```
 where `<program>` is the name of the program you want to compile that is in the `src` folder. The `<protocol_options>` arguments can include more than one as per the MP-SPDZ documentation. The `<program_args>` are the arguments that you want to pass to the program, which can also include more than one.
 
 > This script is just to facilitate the compilation process. It copies the program to the MP-SPDZ directory and runs the MP-SPDZ compilation process.
 
-### Running
+#### Running
 To run a program, you can use the `run.sh` script:
 ```bash
-./run.sh <protocol_script> <program> <protocol_script_args>
+scripts/run.sh <protocol_script> <program> <protocol_script_args>
 ```
 where `<protocol_script>` is the bash script of the protocol that you want to run (with the `.sh` included), `<program>` is the name of the program previously compiled. The `<protocol_script_args>` arguments can include more than one as per the MP-SPDZ documentation.
 
 > Keep in mind that this script is for running in localhost only. To run the compiled program in a distributed environment, you will need to go to the MP-SPDZ directory on each machine and run the compiled program with the preferred protocol binary (.e.g. `./mascot-party.x`).
 
-#### Optional Arguments
-From the MP-SPDZ documentation, there are a few optional arguments that can be passed to protocol binaries that change aspects of the protocol. These include:
-- `--bucket-size`: In some malicious binary computation and malicious edaBit generation, a smaller bucket size allows preprocessing in smaller batches at a higher asymptotic cost.
-- `--batch-size`: Preprocessing in smaller batches avoids generating too much but larger batches save communication rounds.
-- `--direct`: In protocols with any number of parties, direct communication instead of star-shaped saves communication rounds at the expense of a quadratic amount. This might be beneficial with a small number of parties.
-- `--bits-from-squares`: In some protocols computing modulo a prime (Shamir, Rep3, SPDZ-wise), this switches from generating random bits via XOR of parties’ inputs to generation using the root of a random square.
+
+## Running in Docker
+
+The `Dockerfile` provided is a modified version of the one provided in the MP-SPDZ repository. You can see the `Dockerfile` for more examples of how it can be used (remaining from the original MP-SPDZ repository).
+
+### Localhost
+Build the Docker image using the provided Dockerfile (with `mascot` as an example):
+```bash
+docker build --tag mpspdz:mascot-party --build-arg machine=mascot-party.x --build-arg src=linreg .
+```
+Then, run the Docker container:
+```bash
+docker run --rm -it mpspdz:mascot-party ./Scripts/mascot.sh linreg
+```
+
+### Distributed
+--TBD--
 
 
 ## TBD
