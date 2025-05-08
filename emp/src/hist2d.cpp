@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
 	test_hist2d(party, inputs.data(), inputs.size());
 	auto end = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	cout << "Execution time of hist2d with: " << inputs.size() << " elements: " << duration << " ms" << endl;
+	cout << "Execution time of hist2d with " << inputs.size() << " elements: " << duration << " ms" << endl;
 	
 	delete io;
     return 0;

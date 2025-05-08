@@ -112,7 +112,7 @@ void test_average(int party, string inputs[], int input_len) {
 
 /**
  * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
- * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).~
+ * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).
  * 
  * Note: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
  * one displayed.
@@ -198,6 +198,73 @@ void test_mode(int party, string inputs[], int input_len) {
 }
 
 
+/**
+ * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
+ * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).
+ * 
+ * Note: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
+ * one displayed.
+ */
+void test_freq(int party, string inputs[], int input_len) {
+	Integer *a = new Integer[input_len];
+	Integer *b = new Integer[input_len];
+	Integer frequencies[ALICE_CAT_LEN][BOB_CAT_LEN]; //TODO: change to dynamic size
+	Integer categories_a [ALICE_CAT_LEN];
+	Integer categories_b [BOB_CAT_LEN];
+
+	// Initialize the secure integers
+	for(int i = 0; i < input_len; ++i) {
+		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
+		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
+	}
+
+	// Initialize frequency count
+	for(int i = 0; i < ALICE_CAT_LEN; ++i) {
+		for (int j = 0; j < BOB_CAT_LEN; ++j)
+			frequencies[i][j] = Integer(BITSIZE, 0);
+	}
+
+	// Initialize categories
+	for(int i = 0; i < ALICE_CAT_LEN; ++i) 
+		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
+
+	
+	for (int i = 0; i < BOB_CAT_LEN; ++i)
+		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
+
+
+	// Calculate frequencies of each item by group
+	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
+	Integer one (BITSIZE, 1);
+	for (int i = 0; i < input_len; ++i) {
+		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
+			// This compares the given category against the category of the current element
+			// The category of the element must be mapped to an integer to have less of a headache
+			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
+			Bit eq_groupby_cat = a[i].equal(categories_a[j]);
+			Integer result_groupby = zero.select(eq_groupby_cat, one);
+			
+			for (int k = 0; k < BOB_CAT_LEN; ++k) {
+				Bit eq_val_cat = b[i].equal(categories_b[k]);
+				Integer result_val = zero.select(eq_val_cat, result_groupby);
+
+				frequencies[j][k] = frequencies[j][k] + result_val;
+			}	
+		}	
+	}
+
+	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
+		cout << "Group " << i << endl;
+		for (int j = 0; j < BOB_CAT_LEN; ++j) {
+			cout <<  "Frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
+		}
+	}
+
+	delete[] a;
+	delete[] b;
+}
+
+
 int main(int argc, char **argv) {
 	if (argc != 5 && argc != 6) {
 		cout << "Usage for Alice (server): <program> 1 <port> <aggregation> <input file>" << endl;
@@ -237,18 +304,21 @@ int main(int argc, char **argv) {
 			test_sum(party, inputs.data(), inputs.size());
 			break;
 		case 'a':
-			ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
+			ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats (taken from example code)
 			test_average(party, inputs.data(), inputs.size());
 			break;
 		case 'm':
 			test_mode(party, inputs.data(), inputs.size());
 			break;
-		case 'v':
-			cout << "Variance" << endl;
-			cout << "NOT IMPLEMENTED" << endl;
+		case 'f':
+			test_freq(party, inputs.data(), inputs.size());
 			break;
 		case 'd':
 			cout << "Standard Deviation" << endl;
+			cout << "NOT IMPLEMENTED" << endl;
+			break;
+		case 'v':
+			cout << "Variance" << endl;
 			cout << "NOT IMPLEMENTED" << endl;
 			break;
 		case 'c':
@@ -265,7 +335,7 @@ int main(int argc, char **argv) {
 	}
 	auto end = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	cout << "Execution time of xtabs (" << aggregation[0] << ") with: " << inputs.size() << " elements: " << duration << " ms" << endl;
+	cout << "Execution time of xtabs (" << aggregation[0] << ") with " << inputs.size() << " elements: " << duration << " ms" << endl;
 	
 	delete io;
     return 0;
