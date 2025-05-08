@@ -101,6 +101,8 @@ def print_xtabs(categories_a, categories_b, values):
         
     for k, v in frequencies.items():
         modes[k] = max(v.items(), key=itemgetter(1))[0]
+        frequencies[k] = dict(sorted(frequencies[k].items()))   # Also sort the frequencies for better readability
+        
     
 
     print(f"Expected values (sum): {sorted(sums.items())}\n")
