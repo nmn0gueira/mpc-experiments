@@ -1,0 +1,18 @@
+# Environment variable needs to be set to the program name (e.g., export PROGRAM=millionaire)
+services:
+  alice:
+    build: .
+    networks:
+      - mynet
+    command: ["./docker.sh", "alice", "${PROGRAM}"]
+  bob:
+    build: .
+    networks:
+      - mynet
+    depends_on: # Alice is the server
+      - alice
+    command: ["./docker.sh", "bob", "${PROGRAM}"]
+
+networks:
+  mynet:
+    driver: bridge

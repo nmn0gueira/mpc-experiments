@@ -28,13 +28,3 @@ WORKDIR /root/emp-sh2pc
 RUN cmake . \
 	&& make \
 	&& make install
-
-# emp-ag2pc
-WORKDIR /root
-RUN git clone https://github.com/emp-toolkit/emp-ag2pc.git
-WORKDIR /root/emp-ag2pc
-RUN cmake . \
-	&& make \
-	&& make install
-
-WORKDIR /root

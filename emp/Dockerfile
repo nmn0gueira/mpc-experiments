@@ -1,27 +1,49 @@
-
-
-# Image built from .devcontainer/Dockerfile
-ARG os_release="latest"
-ARG emp_image="nmn0gueira/emp-dev:latest"
-
-FROM ${emp_image} AS emp
-
-FROM ubuntu:${os_release}
+FROM ubuntu:latest AS buildenv
 
 RUN apt update \
 	&& apt install -y software-properties-common \
-	&& apt install -y cmake git build-essential libssl-dev
+	&& apt install -y cmake git build-essential libssl-dev \
+	&& apt install -y gdb
 
+# emp-tool
 WORKDIR /root
+RUN git clone https://github.com/emp-toolkit/emp-tool.git
+WORKDIR /root/emp-tool
+RUN cmake . \
+	&& make \ 
+	&& make install
+
+# emp-ot
+WORKDIR /root
+RUN git clone https://github.com/emp-toolkit/emp-ot.git
+WORKDIR /root/emp-ot
+RUN cmake . \
+	&& make \
+	&& make install
+
+# emp-sh2pc
+WORKDIR /root
+RUN git clone https://github.com/emp-toolkit/emp-sh2pc.git
+WORKDIR /root/emp-sh2pc
+RUN cmake . \
+	&& make \
+	&& make install
+
+
+# Creat an image with the emp-toolkit installed and the source code of the application
+FROM ubuntu:latest AS emp
+
+RUN apt update \
+	&& apt install -y software-properties-common \
+	&& apt install -y cmake git build-essential libssl-dev \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Copy build dependencies from other docker images
-COPY --from=emp /usr/local/. /usr/local/.
+COPY --from=buildenv /usr/local/. /usr/local/.
+
+WORKDIR /usr/src/
 
 # Copy source code and install
-COPY . /emp-test
-WORKDIR /emp-test/build
-RUN cmake .. \
-	&& make
-
-# Run the application
-CMD ["/bin/bash"]
+COPY . /emp
+WORKDIR /emp
+RUN cmake . && make
