@@ -2,61 +2,130 @@
  * This program requires the mapping of the categorical variables to group by to an integer range for the functions to be executed. After the
  * functions are executed the same mapping can be reversed, of course. All functions in this program use at least one categorical variable to 
  * group by.
+ * 
+ * Note: It is possible to extend the functions to work with a variable amount of categorical variables if using recursion for the comparison loops (if emp-toolkit allows it).
  */
 
 #include "emp-sh2pc/emp-sh2pc.h"
 #include <iostream>
+#include <dirent.h>
 #include <unistd.h>
 using namespace emp;
 using namespace std;
 
 const int BITSIZE = 32;
-const int ALICE_CAT_LEN = 4;
-const int BOB_CAT_LEN = 4;
+const int CAT_LEN = 4;	// For now, the number of categories is fixed to 4 (0, 1, 2, 3)
+
+
+void initialize_groupby_inputs(int party, Integer *agg_by, vector<vector<string>> inputs, char* agg_cols) {
+	// Count the number of aggregation columns and the number of columns for Alice and Bob
+	int agg_cols_len = strlen(agg_cols);
+
+	for (int i = 0; i < agg_cols_len; i += 2) {
+		int input_sequence_num = agg_cols[i + 1] - '0';	// Convert char to int
+
+		if (agg_cols[i] == 'a') {
+			for (int j = 0; j < inputs[0].size(); ++j) {
+				int agg_by_index = i / 2 * inputs[0].size() + j;
+				int input = party == ALICE ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Alice will have the input value
+				agg_by[agg_by_index] = Integer(BITSIZE, input, ALICE);
+			}
+		}
+
+		else if (agg_cols[i] == 'b') {
+			for (int j = 0; j < inputs[0].size(); ++j) {
+				int agg_by_index = i / 2 * inputs[0].size() + j;
+				int input = party == BOB ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Bob will have the input value
+				agg_by[agg_by_index] = Integer(BITSIZE, input, BOB);
+			}	
+		}
+
+		else {
+			cout << "Invalid aggregation column" << endl;
+			exit(1);
+		}
+	}
+}
+
+void initialize_values(int party, Integer *values, vector<vector<string>> inputs, char* value_col) {
+	cout << "Initializing values" << endl;
+	int input_sequence_num = value_col[1] - '0';	// Convert char to int
+	// Count the number of aggregation columns and the number of columns for Alice and Bob
+	if (value_col[0] == 'a') {
+		for (int j = 0; j < inputs[0].size(); ++j) {
+			int input = party == ALICE ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Alice will have the input value
+			values[j] = Integer(BITSIZE, input, ALICE);
+		}
+	}
+	else if (value_col[0] == 'b') {
+		for (int j = 0; j < inputs[0].size(); ++j) {
+			int input = party == BOB ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Bob will have the input value
+			values[j] = Integer(BITSIZE, input, BOB);
+		}	
+	}
+	else {
+		cout << "Invalid value column" << endl;
+		exit(1);
+	}
+}
 
 
 /**
  * Simplest of the functions
  */
-void test_sum(int party, string inputs[], int input_len) {
-	Integer *a = new Integer[input_len];
-	Integer *b = new Integer[input_len];
-	Integer sums [ALICE_CAT_LEN];		// TODO: change to dynamic size
-	Integer categories [ALICE_CAT_LEN];
+void test_sum(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col) {
+	Integer *agg_by = new Integer[inputs[0].size() * 2];		//  Contains inputs of both parties
+	Integer *values = new Integer[inputs[0].size()];
+	
+	Integer sums [CAT_LEN][CAT_LEN];	// If CAT_LEN was not fixed, each dimension would be initialized to the respective number of categories
+	Integer categories [2][CAT_LEN];
 
-	// Initialize the secure integers
-	for (int i = 0; i < input_len; ++i) {
-		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
-		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
-	}
+	initialize_groupby_inputs(party, agg_by, inputs, agg_cols);
+	initialize_values(party, values, inputs, value_col);
 
-	// Initialize sums
-	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
-		sums[i] = Integer(BITSIZE, 0, PUBLIC);
-		categories[i] = Integer(BITSIZE, i, PUBLIC);
+	for (int i = 0; i < CAT_LEN; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j) {
+			sums[i][j] = Integer(BITSIZE, 0, PUBLIC);
+			categories[i][j] = Integer(BITSIZE, j, PUBLIC);
+		}
 	}
 
 	// Calculate sums
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
-	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
+	for (int i = 0; i < inputs[0].size(); ++i) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
-			// if a[i] == j then result = b[i] else result = 0
-			Bit eqcat = a[i].equal(categories[j]);
-			Integer result = zero.select(eqcat, b[i]);	
-		
-			sums[j] = sums[j] + result;
+			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
+			Bit eq_first_cat = agg_by[i].equal(categories[0][j]);
+			Integer result_first_cat = zero.select(eq_first_cat, values[i]);
+			
+			for (int k = 0; k < CAT_LEN; ++k) {
+				Bit eq_second_cat = agg_by[inputs[0].size() + i].equal(categories[1][k]);
+				Integer result_val = zero.select(eq_second_cat, result_first_cat);
+
+				sums[j][k] = sums[j][k] + result_val;
+			}	
 		}	
 	}
 
+	// Reveal inputs
+	for (int i = 0; i < inputs[0].size(); ++i) {
+		for (int j = 0; j < 2; ++j) {
+			cout << "agg_by[" << i << "][" << j << "]: " << agg_by[i * 2 + j].reveal<int>() << endl;
+		}
+		cout << "value[" << i << "]: " << values[i].reveal<int>() << endl;
+	}
+	
 	// Reveal sums
-    for (int i = 0; i < ALICE_CAT_LEN; ++i) {
-        cout << "sum " << i << ": " << sums[i].reveal<int>() << endl;
-   }
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j) {
+			cout << "sum of category " << i << "and category " << j << ": " << sums[i][j].reveal<int>() << endl;
+		}
+	}
 
-   delete[] a;
-   delete[] b;
+   delete[] agg_by;
+   delete[] values;
 }
 
 
@@ -67,16 +136,16 @@ void test_sum(int party, string inputs[], int input_len) {
 void test_average(int party, string inputs[], int input_len) {
 	Integer *a = new Integer[input_len];
 	Float *b = new Float[input_len];
-	Float sums [ALICE_CAT_LEN];		// TODO: change to dynamic size
-	Float counts [ALICE_CAT_LEN];	// TODO: change to dynamic size
-	Integer categories [ALICE_CAT_LEN];
+	Float sums [CAT_LEN];		// TODO: change to dynamic size
+	Float counts [CAT_LEN];	// TODO: change to dynamic size
+	Integer categories [CAT_LEN];
 
 	for (int i = 0; i < input_len; ++i) {
 		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
 		b[i] = Float(stoi(inputs[i]), BOB);
 	}	
 
-	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
+	for (int i = 0; i < CAT_LEN; ++i) {
 		sums[i] = Float();
 		counts[i] = Float();
 		categories[i] = Integer(BITSIZE, i, PUBLIC);
@@ -86,7 +155,7 @@ void test_average(int party, string inputs[], int input_len) {
 	Float zero = Float();	// Default party is PUBLIC
 	Float one = Float(1, PUBLIC);
 	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0
@@ -100,7 +169,7 @@ void test_average(int party, string inputs[], int input_len) {
 	}
 
 	// Reveal averages
-    for (int i = 0; i < ALICE_CAT_LEN; ++i) {
+    for (int i = 0; i < CAT_LEN; ++i) {
 		float average = (sums[i] / counts[i]).reveal<double>();
         cout << "average " << i << ": " << average << endl;
 	}
@@ -120,10 +189,10 @@ void test_average(int party, string inputs[], int input_len) {
 void test_mode(int party, string inputs[], int input_len) {
 	Integer *a = new Integer[input_len];
 	Integer *b = new Integer[input_len];
-	Integer frequencies[ALICE_CAT_LEN][BOB_CAT_LEN]; //TODO: change to dynamic size
-	Integer modes[ALICE_CAT_LEN];
-	Integer categories_a [ALICE_CAT_LEN];
-	Integer categories_b [BOB_CAT_LEN];
+	Integer frequencies[CAT_LEN][CAT_LEN];
+	Integer modes[CAT_LEN];
+	Integer categories_a [CAT_LEN];
+	Integer categories_b [CAT_LEN];
 
 	// Initialize the secure integers
 	for(int i = 0; i < input_len; ++i) {
@@ -132,17 +201,17 @@ void test_mode(int party, string inputs[], int input_len) {
 	}
 
 	// Initialize frequency count
-	for(int i = 0; i < ALICE_CAT_LEN; ++i) {
-		for (int j = 0; j < BOB_CAT_LEN; ++j)
+	for(int i = 0; i < CAT_LEN; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j)
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
 	// Initialize categories
-	for(int i = 0; i < ALICE_CAT_LEN; ++i) 
+	for(int i = 0; i < CAT_LEN; ++i) 
 		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
 
 	
-	for (int i = 0; i < BOB_CAT_LEN; ++i)
+	for (int i = 0; i < CAT_LEN; ++i)
 		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
 
 
@@ -150,14 +219,14 @@ void test_mode(int party, string inputs[], int input_len) {
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	Integer one (BITSIZE, 1);
 	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
 			Bit eq_groupby_cat = a[i].equal(categories_a[j]);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
 			
-			for (int k = 0; k < BOB_CAT_LEN; ++k) {
+			for (int k = 0; k < CAT_LEN; ++k) {
 				Bit eq_val_cat = b[i].equal(categories_b[k]);
 				Integer result_val = zero.select(eq_val_cat, result_groupby);
 
@@ -168,10 +237,10 @@ void test_mode(int party, string inputs[], int input_len) {
 
 	
 	// With the frequencies calculated, find the mode for each group
-	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
+	for (int i = 0; i < CAT_LEN; ++i) {
 		Integer max(BITSIZE, 0);
 		Integer mode(BITSIZE, -1);
-		for (int j = 0; j < BOB_CAT_LEN; ++j) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			Integer freq = frequencies[i][j];
 			Bit geq = freq.geq(max);
 
@@ -186,8 +255,8 @@ void test_mode(int party, string inputs[], int input_len) {
 	}
 
 
-	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
-		for (int j = 0; j < BOB_CAT_LEN; ++j) {
+	for (int i = 0; i < CAT_LEN; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			cout << "group " << i <<  ", frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
 		}
 		cout << "mode of group " << i << ": " << modes[i].reveal<int>() << endl;
@@ -208,9 +277,9 @@ void test_mode(int party, string inputs[], int input_len) {
 void test_freq(int party, string inputs[], int input_len) {
 	Integer *a = new Integer[input_len];
 	Integer *b = new Integer[input_len];
-	Integer frequencies[ALICE_CAT_LEN][BOB_CAT_LEN]; //TODO: change to dynamic size
-	Integer categories_a [ALICE_CAT_LEN];
-	Integer categories_b [BOB_CAT_LEN];
+	Integer frequencies [CAT_LEN][CAT_LEN];
+	Integer categories_a [CAT_LEN];
+	Integer categories_b [CAT_LEN];
 
 	// Initialize the secure integers
 	for(int i = 0; i < input_len; ++i) {
@@ -219,17 +288,17 @@ void test_freq(int party, string inputs[], int input_len) {
 	}
 
 	// Initialize frequency count
-	for(int i = 0; i < ALICE_CAT_LEN; ++i) {
-		for (int j = 0; j < BOB_CAT_LEN; ++j)
+	for(int i = 0; i < CAT_LEN; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j)
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
 	// Initialize categories
-	for(int i = 0; i < ALICE_CAT_LEN; ++i) 
+	for(int i = 0; i < CAT_LEN; ++i) 
 		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
 
 	
-	for (int i = 0; i < BOB_CAT_LEN; ++i)
+	for (int i = 0; i < CAT_LEN; ++i)
 		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
 
 
@@ -237,14 +306,14 @@ void test_freq(int party, string inputs[], int input_len) {
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	Integer one (BITSIZE, 1);
 	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < ALICE_CAT_LEN; ++j) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
 			Bit eq_groupby_cat = a[i].equal(categories_a[j]);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
 			
-			for (int k = 0; k < BOB_CAT_LEN; ++k) {
+			for (int k = 0; k < CAT_LEN; ++k) {
 				Bit eq_val_cat = b[i].equal(categories_b[k]);
 				Integer result_val = zero.select(eq_val_cat, result_groupby);
 
@@ -253,9 +322,9 @@ void test_freq(int party, string inputs[], int input_len) {
 		}	
 	}
 
-	for (int i = 0; i < ALICE_CAT_LEN; ++i) {
+	for (int i = 0; i < CAT_LEN; ++i) {
 		cout << "Group " << i << endl;
-		for (int j = 0; j < BOB_CAT_LEN; ++j) {
+		for (int j = 0; j < CAT_LEN; ++j) {
 			cout <<  "Frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
 		}
 	}
@@ -265,53 +334,29 @@ void test_freq(int party, string inputs[], int input_len) {
 }
 
 
-int main(int argc, char **argv) {
-	if (argc != 5 && argc != 6) {
-		cout << "Usage for Alice (server): <program> 1 <port> <aggregation> <input file>" << endl;
-		cout << "Usage for Bob (client): <program> 2 <port> <ip> <aggregation> <input file>" << endl;
-		return 0;
-	}
-    
-    int party, port;
-	parse_party_and_port(argv, &party, &port);
-	// Parse the IP address if Bob (client), otherwise set to nullptr since Alice (server) doesn't need it
-	char * ip = nullptr;
-	if(party == BOB) ip = argv[3];
-	char* aggregation = argv[argc - 2];
-	char* filename = argv[argc - 1];
-	
-	NetIO * io = new NetIO(ip, port);
-	auto ctx = setup_semi_honest(io, party);
-	
-	ifstream infile(filename);
-	if (!infile.is_open()) {
-        cerr << "Failed to open file: " << filename << endl;
-		delete io;
-		return 1;
-    }
-	
-	vector<string> inputs;
-	string line;
-	while(getline(infile, line)) {
-		inputs.push_back(line);
-	}
-	infile.close();
+void xtabs_1(char aggregation, int party, vector<string> inputs) {
+
+}
+
+void xtabs_2() {
+
+}
 
 
-	auto start = chrono::high_resolution_clock::now();
-	switch (aggregation[0]) {
+void test_xtabs(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
+	switch (aggregation) {
 		case 's':
-			test_sum(party, inputs.data(), inputs.size());
+			test_sum(party, inputs, agg_cols, value_col);
 			break;
 		case 'a':
-			ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats (taken from example code)
-			test_average(party, inputs.data(), inputs.size());
+			//ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats (taken from example code)
+			//test_average(party, inputs.data(), inputs.size());
 			break;
 		case 'm':
-			test_mode(party, inputs.data(), inputs.size());
+			//test_mode(party, inputs.data(), inputs.size());
 			break;
 		case 'f':
-			test_freq(party, inputs.data(), inputs.size());
+			//test_freq(party, inputs.data(), inputs.size());
 			break;
 		case 'd':
 			cout << "Standard Deviation" << endl;
@@ -333,10 +378,79 @@ int main(int argc, char **argv) {
 			cout << "Invalid aggregation type" << endl;
 			break;
 	}
+
+}
+
+
+int main(int argc, char **argv) {
+	if (argc != 7 && argc != 8) {
+		cout << "Usage for Alice (server): <program> 1 <port> <aggregation> <aggregate_by> <value_col> <input dir>" << endl;
+		cout << "Usage for Bob (client): <program> 2 <port> <ip> <aggregation> <aggregate_by> <value_col> <input dir>" << endl;
+		cout << endl;
+		cout << "Additional argument explanation: " << endl;
+		cout << "<aggregate_by> argument has format of a0b1 for using Alice's column 0 and Bob's column 1 to aggregate by" << endl;
+		cout << "<value_col> argument has format of a0 for using Alice's column 0 as the value column" << endl;
+		return 0;
+	}
+    
+    int party, port;
+	parse_party_and_port(argv, &party, &port);
+	// Parse the IP address if Bob (client), otherwise set to nullptr since Alice (server) doesn't need it
+	char * ip = nullptr;
+	if(party == BOB) ip = argv[3];
+	
+	char* aggregation = argv[argc - 4];
+	char* agg_cols = argv[argc - 3];
+	char* value_col = argv[argc - 2];
+	char* input_dir = argv[argc - 1];
+	
+	NetIO * io = new NetIO(ip, port);
+	auto ctx = setup_semi_honest(io, party);
+	ctx->set_batch_size(1024*1024);
+
+	vector<vector<string>> input_matrix;
+
+	// TODO: SEE IF IT IS BETTER TO ONLY READ FILES ENDING IN THE PARTY ID (A OR B) OR IF IT IS BETTER TO READ ALL FILES WHILE SPECIFYING THE PARTY IN THE ARGUMENTS
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir(input_dir)) != NULL) {
+		while ((ent = readdir(dir)) != NULL) {
+			// Skip the current directory "." and the parent directory ".."
+            if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
+                continue;
+            }
+
+            string file_path = string(input_dir) + "/" + ent->d_name;
+
+			ifstream infile(file_path);
+			if (!infile.is_open()) {
+				cerr << "Failed to open file: " << input_dir << endl;
+				return 1;
+			}
+			
+			vector<string> input_vector;
+			string line;
+			while(getline(infile, line)) {
+				input_vector.push_back(line);
+			}
+			infile.close();
+
+			input_matrix.push_back(input_vector);
+		}
+		closedir (dir);
+	} else {
+		// Could not open directory
+		perror("Failed to open directory");
+		return EXIT_FAILURE;
+	}
+
+	test_xtabs(party, input_matrix, aggregation[0], agg_cols, value_col);
+	/*
+	auto start = chrono::high_resolution_clock::now();
 	auto end = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
 	cout << "Execution time of xtabs (" << aggregation[0] << ") with " << inputs.size() << " elements: " << duration << " ms" << endl;
-	
+	*/
 	delete io;
     return 0;
 }
