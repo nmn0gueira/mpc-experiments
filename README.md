@@ -10,10 +10,10 @@ The test programs focus on statistical analysis and are designed to be simple ye
 Below is a general overview of the implemented functions. For detailed information on each framework’s implementation, refer to the README files inside their respective directories.
 
  - `millionaire`: Determines which of two numbers is larger. A basic control program to validate setup.
- - `xtabs`: Cross-tabulation (pivot table). Groups by one or more columns and performs aggregations on another column. Supported aggregations: 
+ - `xtabs`: Cross-tabulation (pivot table). Groups by one or two columns and performs aggregations on another column. Supported aggregations: 
     - sum
     - average
-    - frequency/mode
+    - frequency count
 - `linreg`: Linear regression. Computes regression coefficients after applying standard scaling to the (numerical) input data.
 - `hist2d`: 2D histogram (density heatmap). Bins 2D points into a grid and counts the number of points per bin.
 

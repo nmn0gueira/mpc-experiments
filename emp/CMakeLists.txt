@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28.3)
-project (emp-docker-test)
-set(NAME "emp-docker-test")
+project (emp-test)
+set(NAME "emp-test")
 
 # Set the correct path to the toolchain file
 set(CMAKE_TOOLCHAIN_FILE "c:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Toolchain file")

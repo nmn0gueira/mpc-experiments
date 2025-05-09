@@ -57,7 +57,7 @@ void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integ
  * Items are placed in bins according to the formula bin[i-1] < x <= bin[i]. This function computes a 2d histogram with the aggregation performed
  * being a count. In the feature this could be any sort of aggregation ig, like in xtabs.
  */
-void test_hist2d(int party, string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
+void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
 	Float *a = new Float[input_len];
 	Float *b = new Float[input_len];
 
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 	infile.close();
 
 	auto start = chrono::high_resolution_clock::now();
-	test_hist2d(party, inputs.data(), inputs.size());
+	test_hist2d(inputs.data(), inputs.size());
 	auto end = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
 	cout << "Execution time of hist2d with " << inputs.size() << " elements: " << duration << " ms" << endl;

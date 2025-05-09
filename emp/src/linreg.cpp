@@ -34,7 +34,7 @@ void standard_scaler(Float * a, int size) {
 /**
  * Single variable linear regression. Assumes Alice has the feature column and Bob has the labels.
  */
-void test_linreg(int party, string inputs[], int input_len, bool scale=true) {
+void test_linreg(string inputs[], int input_len, bool scale=true) {
 	Float *a = new Float[input_len];
 	Float *b = new Float[input_len];
 	Float input_size = Float(input_len, PUBLIC);
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 	infile.close();
 
 	auto start = chrono::high_resolution_clock::now();
-	test_linreg(party, inputs.data(), inputs.size());
+	test_linreg(inputs.data(), inputs.size());
 	auto end = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
 	cout << "Execution time of linreg with " << inputs.size() << " elements: " << duration << " ms" << endl;
