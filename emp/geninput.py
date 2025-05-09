@@ -6,15 +6,18 @@ BASE_DIR = "data/"
 
 def create_dirs(program):
     dirname = "data/"+program
-    if not os.path.exists(dirname):
+    alice_dir = dirname + "/alice"
+    bob_dir = dirname + "/bob"
+    if not os.path.exists(alice_dir) or not os.path.exists(bob_dir):
         try:
-            os.makedirs(dirname)
+            os.makedirs(alice_dir)
+            os.makedirs(bob_dir)
         except OSError as e:
             if e.errno != errno.EEXIST: raise
 
 
 def get_data_filepath(program, n, party):
-    return f"{BASE_DIR}{program}/{n}.{party}.dat"
+    return f"{BASE_DIR}{program}/{party}/{n}.{party}.dat"
 
 
 def write_to_file(filepath, data):
@@ -55,7 +58,7 @@ def gen_input(program, n, l, adjust_bit_length=True):
     list_a = get_rand_list(bits, l)
     list_b = get_rand_list(bits, l)
     
-    for party, data in zip([1,2], [list_a, list_b]):
+    for party, data in zip(["alice", "bob"], [list_a, list_b]):
         filepath = get_data_filepath(program, n, party)
         write_to_file(filepath, data)
     
@@ -74,7 +77,7 @@ def gen_xtabs_input(n, l):
         return
 
     categories_a, categories_b = gen_input('xtabs', 2, l, adjust_bit_length=False)
-    values_a, values_b = gen_input('xtabs', n, l)
+    _, values_b = gen_input('xtabs', n, l)
 
     print_xtabs(categories_a, categories_b, values_b)
 
@@ -104,12 +107,40 @@ def print_xtabs(categories_a, categories_b, values):
         frequencies[k] = dict(sorted(frequencies[k].items()))   # Also sort the frequencies for better readability
         
     
-
+    print("Grouping by column in a and aggregating on value column b:")
     print(f"Expected values (sum): {sorted(sums.items())}\n")
     print(f"Expected values (mean): {sorted(averages.items())}\n")
+
+    print("-----------------------------------------------------------------------")
+    print("Grouping by column in a and b:")
     print(f"Expected values (mode): {sorted(modes.items())}\n")
     print(f"Expected values (frequencies): {sorted(frequencies.items())}\n")
 
+    print("-----------------------------------------------------------------------")
+
+    sums = {}
+    averages = {}
+    
+    for i in range(input_len):
+        sum_dict = sums.get(categories_a[i], {})
+        sum_dict[categories_b[i]] = sum_dict.get(categories_b[i], 0) + values[i]
+        sums[categories_a[i]] = sum_dict
+
+        average_dict = averages.get(categories_a[i], {})
+        average_dict[categories_b[i]] = average_dict.get(categories_b[i], 0) + values[i]
+        averages[categories_a[i]] = average_dict
+
+    for key in averages:
+        for k, v in averages[key].items():
+            averages[key][k] = v / categories_a.count(key)
+    
+    for k, v in sums.items():
+        sums[k] = dict(sorted(sums[k].items()))
+        averages[k] = dict(sorted(averages[k].items())) 
+
+    print("Grouping by column in a and b and aggregating on value column b:")
+    print(f"Expected values (sum): {sorted(sums.items())}\n")
+    print(f"Expected values (avg): {sorted(averages.items())}\n")
 
 
 def gen_linreg_input(n, l):
