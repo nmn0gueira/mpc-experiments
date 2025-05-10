@@ -112,7 +112,7 @@ def print_xtabs(categories_a, categories_b, values):
     print(f"Expected values (mean): {sorted(averages.items())}\n")
 
     print("-----------------------------------------------------------------------")
-    print("Grouping by column in a and b:")
+    print("Grouping by column in a and b (no value column):")
     print(f"Expected values (mode): {sorted(modes.items())}\n")
     print(f"Expected values (frequencies): {sorted(frequencies.items())}\n")
 
