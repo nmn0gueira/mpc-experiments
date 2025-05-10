@@ -3,10 +3,14 @@
  * functions are executed the same mapping can be reversed, of course. All functions in this program use at least one categorical variable to 
  * group by.
  * 
- * Note: It is possible to extend the functions to work with a variable amount of categorical variables if using recursion for the comparison loops (if emp-toolkit allows it).
+ * Note 1: Although it may be possible to extend the functions to work with a variable amount of categorical variables, the code would be a bit more
+ * complex and the performance would be worse. For now, the number of categories is fixed to 4 (0, 1, 2, 3).
+ * Note 2: All used columns (which are themselves from different files read) are assumed to have the same number of elements.
  */
 
 #include "emp-sh2pc/emp-sh2pc.h"
+#include "utils/timing_utils.hpp"
+
 #include <iostream>
 #include <dirent.h>
 #include <unistd.h>
@@ -17,8 +21,7 @@ const int BITSIZE = 32;
 const int CAT_LEN = 4;	// For now, the number of categories is fixed to 4 (0, 1, 2, 3)
 
 
-void initialize_groupby_inputs(int party, Integer *agg_by, vector<vector<string>> inputs, char* agg_cols) {
-	// Count the number of aggregation columns and the number of columns for Alice and Bob
+void initialize_groupby_inputs(int party, Integer *group_by, vector<vector<string>> inputs, char* agg_cols) {
 	int sample_size = inputs[0].size();
 	int agg_cols_len = strlen(agg_cols);	// Number of characters in the string (NOT THE ACTUAL NUMBER OF COLUMNS)
 	const int STEP = 2;	// Each column is represented by two characters (e.g. a0, b1, etc.)
@@ -28,28 +31,28 @@ void initialize_groupby_inputs(int party, Integer *agg_by, vector<vector<string>
 
 		if (agg_cols[i] == 'a') {
 			for (int j = 0; j < sample_size; ++j) {
-				int agg_by_index = i / STEP * sample_size + j;
+				int group_by_index = i / STEP * sample_size + j;
 				int input = party == ALICE ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Alice will have the input value
-				agg_by[agg_by_index] = Integer(BITSIZE, input, ALICE);
+				group_by[group_by_index] = Integer(BITSIZE, input, ALICE);
 			}
 		}
 
 		else if (agg_cols[i] == 'b') {
 			for (int j = 0; j < sample_size; ++j) {
-				int agg_by_index = i / STEP * sample_size + j;
+				int group_by_index = i / STEP * sample_size + j;
 				int input = party == BOB ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Bob will have the input value
-				agg_by[agg_by_index] = Integer(BITSIZE, input, BOB);
+				group_by[group_by_index] = Integer(BITSIZE, input, BOB);
 			}	
 		}
 
 		else {
-			cout << "Invalid aggregation column" << endl;
+			cout << "Invalid syntax" << endl;
 			exit(1);
 		}
 	}
 }
 
-void initialize_values(int party, Integer *values, vector<vector<string>> inputs, char* value_col) {
+void initialize_values_i(int party, Integer *values, vector<vector<string>> inputs, char* value_col) {
 	int sample_size = inputs[0].size();
 	int input_sequence_num = value_col[1] - '0';	// Convert char to int
 	// Count the number of aggregation columns and the number of columns for Alice and Bob
@@ -71,18 +74,40 @@ void initialize_values(int party, Integer *values, vector<vector<string>> inputs
 	}
 }
 
-void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col) {
+void initialize_values_f(int party, Float *values, vector<vector<string>> inputs, char* value_col) {
 	int sample_size = inputs[0].size();
-	Integer *agg_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
+	int input_sequence_num = value_col[1] - '0';	// Convert char to int
+	// Count the number of aggregation columns and the number of columns for Alice and Bob
+	if (value_col[0] == 'a') {
+		for (int j = 0; j < sample_size; ++j) {
+			int input = party == ALICE ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Alice will have the input value
+			values[j] = Float(input, ALICE);
+		}
+	}
+	else if (value_col[0] == 'b') {
+		for (int j = 0; j < sample_size; ++j) {
+			int input = party == BOB ? stoi(inputs[input_sequence_num][j]) : 0;	// Only Bob will have the input value
+			values[j] = Float(input, BOB);
+		}	
+	}
+	else {
+		cout << "Invalid value column" << endl;
+		exit(1);
+	}
+}
+
+void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
 	Integer *values = new Integer[inputs[0].size()];
 	
-	Integer sums[CAT_LEN];	// If CAT_LEN was not fixed, each dimension would be initialized to the respective number of categories
-	Integer categories[CAT_LEN];
-	initialize_groupby_inputs(party, agg_by, inputs, agg_cols);
-	initialize_values(party, values, inputs, value_col);
+	Integer sums[cat_len];	// If CAT_LEN was not fixed, each dimension would be initialized to the respective number of categories
+	Integer categories[cat_len];
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_i(party, values, inputs, value_col);
 
 	// Initialize sums
-	for (int i = 0; i < CAT_LEN; ++i) {
+	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Integer(BITSIZE, 0, PUBLIC);
 		categories[i] = Integer(BITSIZE, i, PUBLIC);
 	}
@@ -90,11 +115,11 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 	// Calculate sums
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	for (int i = 0; i < sample_size; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+		for (int j = 0; j < cat_len; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0
-			Bit eqcat = agg_by[i].equal(categories[j]);
+			Bit eqcat = group_by[i].equal(categories[j]);
 			Integer result = zero.select(eqcat, values[i]);	
 		
 			sums[j] = sums[j] + result;
@@ -102,30 +127,31 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 	}
 
 	// Reveal sums
-    for (int i = 0; i < CAT_LEN; ++i) {
+    for (int i = 0; i < cat_len; ++i) {
         cout << "sum " << i << ": " << sums[i].reveal<int>() << endl;
    }
 
-   delete[] agg_by;
+   delete[] group_by;
    delete[] values;
    //delete[] categories;
    //delete[] sums;
 }
 
-
 /**
- * Same as the test_sum function, but now we are grouping by two categorical variables.
+ * Same as the test_sum1 function, but now we are grouping by two categorical variables.
  */
-void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col) {
-	int sample_size = inputs[0].size();
-	Integer *agg_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
-	Integer *values = new Integer[inputs[0].size()];
+void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	
-	Integer sums[CAT_LEN][CAT_LEN];	// If CAT_LEN was not fixed, each dimension would be initialized to the respective number of categories
-	Integer categories[CAT_LEN][2];
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
+	Integer *values = new Integer[inputs[0].size()];
 
-	initialize_groupby_inputs(party, agg_by, inputs, agg_cols);
-	initialize_values(party, values, inputs, value_col);
+	Integer sums[first_cat_len][second_cat_len];
+	Integer categories_1[first_cat_len];
+	Integer categories_2[second_cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_i(party, values, inputs, value_col);
 
 	for (int i = 0; i < CAT_LEN; ++i) {
 		for (int j = 0; j < CAT_LEN; ++j) {
@@ -134,35 +160,35 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 	}
 
 	for (int i = 0; i < CAT_LEN; ++i) {
-		categories[i][0] = Integer(BITSIZE, i, PUBLIC);
-		categories[i][1] = Integer(BITSIZE, i, PUBLIC);
+		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
 	// Calculate sums
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	for (int i = 0; i < sample_size; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
-			Bit eq_first_cat = agg_by[i].equal(categories[j][0]);
+		for (int j = 0; j < first_cat_len; ++j) {
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
 			Integer result_first_cat = zero.select(eq_first_cat, values[i]);
 			
-			for (int k = 0; k < CAT_LEN; ++k) {
-				Bit eq_second_cat = agg_by[sample_size + i].equal(categories[k][1]);
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
 				Integer result_val = zero.select(eq_second_cat, result_first_cat);
 
 				sums[j][k] = sums[j][k] + result_val;	// Only if both categories match do we add the value (otherwise adds 0)
 			}	
 		}	
 	}
-	
+
 	// Reveal sums
-	for (int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
 			cout << "Sum (" << i << ", " << j << "): " << sums[i][j].reveal<int>() << endl;
 		}
 	}
 
-   delete[] agg_by;
-   delete[] values;
+	delete[] group_by;
+	delete[] values;
 }
 
 
@@ -170,19 +196,20 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
  * For the average function, we need to use emp::Float types instead of emp::Integer types for the final results if we want precision in the 
  * averages (otherwise we can use just integer division ig).
  */
-void test_average(int party, string inputs[], int input_len) {
-	Integer *a = new Integer[input_len];
-	Float *b = new Float[input_len];
-	Float sums [CAT_LEN];		// TODO: change to dynamic size
-	Float counts [CAT_LEN];	// TODO: change to dynamic size
-	Integer categories [CAT_LEN];
+void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
+	Float *values = new Float[inputs[0].size()];
+	
+	Float sums[cat_len];
+	Float counts [cat_len];
+	Integer categories[cat_len];
 
-	for (int i = 0; i < input_len; ++i) {
-		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
-		b[i] = Float(stoi(inputs[i]), BOB);
-	}	
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_f(party, values, inputs, value_col);
 
-	for (int i = 0; i < CAT_LEN; ++i) {
+	// Initialize sums
+	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Float();
 		counts[i] = Float();
 		categories[i] = Integer(BITSIZE, i, PUBLIC);
@@ -191,13 +218,13 @@ void test_average(int party, string inputs[], int input_len) {
 	// Calculate averages
 	Float zero = Float();	// Default party is PUBLIC
 	Float one = Float(1, PUBLIC);
-	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < cat_len; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0
-			Bit eqcat = a[i].equal(categories[j]);
-			Float result_sum = zero.If(eqcat, b[i]);
+			Bit eqcat = group_by[i].equal(categories[j]);
+			Float result_sum = zero.If(eqcat, values[i]);
 			Float result_count = zero.If(eqcat, one);
 		
 			sums[j] = sums[j] + result_sum;
@@ -206,14 +233,73 @@ void test_average(int party, string inputs[], int input_len) {
 	}
 
 	// Reveal averages
-    for (int i = 0; i < CAT_LEN; ++i) {
+    for (int i = 0; i < cat_len; ++i) {
 		float average = (sums[i] / counts[i]).reveal<double>();
         cout << "average " << i << ": " << average << endl;
 	}
 
-	delete[] a;
-	delete[] b;
+	delete[] group_by;
+	delete[] values;
 }
+
+
+/**
+ * Same as the test_sum1 function, but now we are grouping by two categorical variables.
+ */
+void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
+	Float *values = new Float[inputs[0].size()];
+	
+	Float sums[first_cat_len][second_cat_len];
+	Float counts[first_cat_len][second_cat_len];
+	Integer categories_1[first_cat_len];
+	Integer categories_2[second_cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_f(party, values, inputs, value_col);
+
+	for (int i = 0; i < CAT_LEN; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j) {
+			sums[i][j] = Float();
+			counts[i][j] = Float();
+		}
+	}
+
+	for (int i = 0; i < CAT_LEN; ++i) {
+		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	// Calculate sums
+	Float zero = Float();	// Default party is PUBLIC
+	Float one = Float(1, PUBLIC);
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < first_cat_len; ++j) {
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
+			Float result_first_cat_sum = zero.If(eq_first_cat, values[i]);
+			Float result_first_cat_count = zero.If(eq_first_cat, one);
+			
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
+				Float result_sum = zero.If(eq_second_cat, result_first_cat_sum);
+				Float result_count = zero.If(eq_second_cat, result_first_cat_count);
+				sums[j][k] = sums[j][k] + result_sum;
+				counts[j][k] = counts[j][k] + result_count;	
+			}	
+		}	
+	}
+	
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
+			cout << "Average (" << i << ", " << j << "): " << (sums[i][j] / counts[i][j]).reveal<double>() << endl;
+		}
+	}
+
+   delete[] group_by;
+   delete[] values;
+}
+
 
 
 /**
@@ -371,35 +457,37 @@ void test_freq(int party, string inputs[], int input_len) {
 }
 
 
-void xtabs_1(char aggregation, int party, vector<string> inputs) {
-
-}
-
-void xtabs_2() {
-
-}
-
-
-void test_xtabs(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
-	auto start = chrono::high_resolution_clock::now();
-	int num_agg_cols = strlen(agg_cols) / 2;	// Number of aggregation columns (e.g. a0b1 -> 2)
+void xtabs_1(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
 	switch (aggregation) {
 		case 's':
-			if (num_agg_cols == 1) {
-				cout << "Sum" << endl;
-				test_sum1(party, inputs, agg_cols, value_col);
-			}
-			else if (num_agg_cols == 2) {
-				cout << "Sum" << endl;
-				test_sum2(party, inputs, agg_cols, value_col);
-			}
-			else {
-				cout << "Invalid number of aggregation columns" << endl;
-			}
+			utils::time_it(test_sum1, party, inputs, agg_cols, value_col, CAT_LEN);
 			break;
 		case 'a':
-			//ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats (taken from example code)
-			//test_average(party, inputs.data(), inputs.size());
+			utils::time_it(test_average1, party, inputs, agg_cols, value_col, CAT_LEN);
+			break;
+		case 'm':
+			cout << "Mode is not available when grouping by one column only" << endl;
+			break;
+		case 'f':
+			cout << "Frequency counts are not available when grouping by one column only" << endl;
+			break;
+		case 'd':
+			cout << "Standard Deviation" << endl;
+			cout << "NOT IMPLEMENTED" << endl;
+			break;
+		default:
+			cout << "Invalid aggregation type" << endl;
+			break;
+	}
+
+}
+
+void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
+	switch (aggregation) {
+		case 's':
+			utils::time_it(test_sum2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
+		case 'a':
+			utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 			break;
 		case 'm':
 			//test_mode(party, inputs.data(), inputs.size());
@@ -411,26 +499,26 @@ void test_xtabs(int party, vector<vector<string>> inputs, char aggregation, char
 			cout << "Standard Deviation" << endl;
 			cout << "NOT IMPLEMENTED" << endl;
 			break;
-		case 'v':
-			cout << "Variance" << endl;
-			cout << "NOT IMPLEMENTED" << endl;
-			break;
-		case 'c':
-			cout << "Covariance" << endl;
-			cout << "NOT IMPLEMENTED" << endl;
-			break;
-		case 'p':	// related to stdev and covariance
-			cout << "Pearson Correlation Coefficient" << endl;
-			cout << "NOT IMPLEMENTED" << endl;
-			break;
 		default:
 			cout << "Invalid aggregation type" << endl;
 			break;
 	}
-	auto end = chrono::high_resolution_clock::now();
-	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	cout << "Execution time of xtabs (" << aggregation << ") with " << inputs[0].size() << " elements: " << duration << " ms" << endl;
+}
 
+
+void test_xtabs(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
+	int num_agg_cols = strlen(agg_cols) / 2;	// Number of aggregation columns (e.g. a0b1 -> 2)
+
+	if (num_agg_cols == 1) {
+		xtabs_1(party, inputs, aggregation, agg_cols, value_col);
+	}
+	else if (num_agg_cols == 2) {
+		xtabs_2(party, inputs, aggregation, agg_cols, value_col);
+	}
+	else {
+		cout << "Invalid number of aggregation columns" << endl;
+		return;
+	}
 }
 
 
@@ -462,7 +550,6 @@ int main(int argc, char **argv) {
 
 	vector<vector<string>> input_matrix;
 
-	// TODO: SEE IF IT IS BETTER TO ONLY READ FILES ENDING IN THE PARTY ID (A OR B) OR IF IT IS BETTER TO READ ALL FILES WHILE SPECIFYING THE PARTY IN THE ARGUMENTS
 	DIR *dir;
 	struct dirent *ent;
 	if ((dir = opendir(input_dir)) != NULL) {
@@ -496,13 +583,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
+	cout << "Number of files read: " << input_matrix.size() << endl;
+	cout << "Number of elements in each file: " << input_matrix[0].size() << endl; // Assuming all files have the same number of elements
 	test_xtabs(party, input_matrix, aggregation[0], agg_cols, value_col);
-	/*
-	auto start = chrono::high_resolution_clock::now();
-	auto end = chrono::high_resolution_clock::now();
-	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	cout << "Execution time of xtabs (" << aggregation[0] << ") with " << inputs.size() << " elements: " << duration << " ms" << endl;
-	*/
+
 	delete io;
     return 0;
 }

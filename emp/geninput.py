@@ -130,9 +130,10 @@ def print_xtabs(categories_a, categories_b, values):
         average_dict[categories_b[i]] = average_dict.get(categories_b[i], 0) + values[i]
         averages[categories_a[i]] = average_dict
 
+    # Divide by each time a category combo appeared
     for key in averages:
-        for k, v in averages[key].items():
-            averages[key][k] = v / categories_a.count(key)
+        for k in averages[key]:
+            averages[key][k] /= frequencies[key][k]
     
     for k, v in sums.items():
         sums[k] = dict(sorted(sums[k].items()))
