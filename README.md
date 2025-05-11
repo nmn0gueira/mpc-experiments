@@ -14,6 +14,7 @@ Below is a general overview of the implemented functions. For detailed informati
     - sum
     - average
     - frequency count
+    - mode (does not reveal frequency counts)
 - `linreg`: Linear regression. Computes regression coefficients after applying standard scaling to the (numerical) input data.
 - `hist2d`: 2D histogram (density heatmap). Bins 2D points into a grid and counts the number of points per bin.
 

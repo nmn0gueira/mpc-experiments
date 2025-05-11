@@ -1,3 +1,8 @@
+/**
+ * @file linreg.cpp
+ * @brief This prgogram is used for providing a benchmark of a simple implementation of linear regression in garbled circuits. Due to the extreme inefficiency of linear regression in garbled 
+ * circuits, this program implements a much more limited version of linear regression which provides functionality for only one feature and one label in addition to very basic preprocessing.
+ */
 #include "emp-sh2pc/emp-sh2pc.h"
 #include <iostream>
 #include <unistd.h>

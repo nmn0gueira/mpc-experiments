@@ -49,19 +49,12 @@ And the following for Bob:
 
 
 ## TBD
-This sections includes work that has not been completed yet for this particular framework.
+This section includes work that has not been completed yet for this particular framework.
 
 ### Functionality
-- `xtabs`: 
-    - Add support for grouping by multiple columns.
-- `linreg`: 
-    - Add support for more than one feature.
-
 ### Optimizations
 - `xtabs`: 
     - The `average` function can be optimized by revealing the sum and count, allowing not only working with only integers for the circuit but also not needing to do the division inside the circuit.
-- `linreg`:
-    - As of now, I do not know yet if the current implementation is as optimal as can be in a boolean circuit.
 - `hist2d`:
     - Change the usage of floats to integers trading a potential slight loss of precision in the binning for a more efficient computation.
 
