@@ -236,9 +236,7 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 }
 
 
-/**
- * Same as the test_sum1 function, but now we are grouping by two categorical variables.
- */
+
 void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
@@ -264,8 +262,7 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
-	// Calculate sums
-	Float zero = Float();	// Default party is PUBLIC
+	Float zero = Float();
 	Float one = Float(1, PUBLIC);
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
@@ -286,6 +283,103 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 	for (int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j) {
 			cout << "Average (" << i << ", " << j << "): " << (sums[i][j] / counts[i][j]).reveal<double>() << endl;
+		}
+	}
+
+   delete[] group_by;
+   delete[] values;
+}
+
+
+void test_average1_fast(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
+	Integer *values = new Integer[inputs[0].size()];
+	
+	Integer sums[cat_len];
+	Integer counts [cat_len];
+	Integer categories[cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_i(party, values, inputs, value_col);
+
+	for (int i = 0; i < cat_len; ++i) {
+		sums[i] = Integer(BITSIZE, 0, PUBLIC);
+		counts[i] = Integer(BITSIZE, 0, PUBLIC);
+		categories[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	Integer zero(BITSIZE, 0);
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < cat_len; ++j) {
+			Bit eq_cat = group_by[i].equal(categories[j]);
+			Integer result_sum = zero.select(eq_cat, values[i]);
+
+			sums[j] = sums[j] + result_sum;
+			emp::add_full(counts[j].bits.data(), nullptr, counts[j].bits.data(), zero.bits.data(), &eq_cat, counts[j].size());	// counts[j] = counts[j] + eq_cat
+		}	
+	}
+
+    for (int i = 0; i < cat_len; ++i) {
+		int sum = sums[i].reveal<int>();
+		int count = counts[i].reveal<int>();
+		float average = (float) sum / count;
+        cout << "Average (" << i << "): " << average << endl;
+	}
+
+	delete[] group_by;
+	delete[] values;
+}
+
+
+void test_average2_fast(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
+	Integer *values = new Integer[inputs[0].size()];
+	
+	Integer sums[first_cat_len][second_cat_len];
+	Integer counts[first_cat_len][second_cat_len];
+	Integer categories_1[first_cat_len];
+	Integer categories_2[second_cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_i(party, values, inputs, value_col);
+
+	for (int i = 0; i < CAT_LEN; ++i) {
+		for (int j = 0; j < CAT_LEN; ++j) {
+			sums[i][j] = Integer(BITSIZE, 0, PUBLIC);
+			counts[i][j] = Integer(BITSIZE, 0, PUBLIC);
+		}
+	}
+
+	for (int i = 0; i < CAT_LEN; ++i) {
+		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < first_cat_len; ++j) {
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
+			
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
+				Bit match = eq_first_cat & eq_second_cat;
+				Integer result_sum = zero.select(match, values[i]);
+
+				sums[j][k] = sums[j][k] + result_sum;
+				emp::add_full(counts[j][k].bits.data(), nullptr, counts[j][k].bits.data(), zero.bits.data(), &match, counts[j][k].size());	// counts[j][k] = counts[j][k] + match
+
+			}	
+		}	
+	}
+	
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
+			int sum = sums[i][j].reveal<int>();
+			int count = counts[i][j].reveal<int>();
+			float average = (float) sum / count;
+			cout << "Average (" << i << ", " << j << "): " << average << endl;
 		}
 	}
 
@@ -402,9 +496,6 @@ void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 	Integer one (BITSIZE, 1);
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
-			// This compares the given category against the category of the current element
-			// The category of the element must be mapped to an integer to have less of a headache
-			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
 			Bit eq_groupby_cat = group_by[i].equal(categories_a[j]);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
 			
@@ -434,7 +525,8 @@ void xtabs_1(int party, vector<vector<string>> inputs, char aggregation, char* a
 			utils::time_it(test_sum1, party, inputs, agg_cols, value_col, CAT_LEN);
 			break;
 		case 'a':
-			utils::time_it(test_average1, party, inputs, agg_cols, value_col, CAT_LEN);
+			//utils::time_it(test_average1, party, inputs, agg_cols, value_col, CAT_LEN);
+			utils::time_it(test_average1_fast, party, inputs, agg_cols, value_col, CAT_LEN);
 			break;
 		case 'm':
 			cout << "Mode is not available when grouping by one column only" << endl;
@@ -458,7 +550,8 @@ void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* a
 		case 's':
 			utils::time_it(test_sum2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 		case 'a':
-			utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			//utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			utils::time_it(test_average2_fast, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 			break;
 		case 'm':
 			utils::time_it(test_mode, party, inputs, agg_cols, CAT_LEN, CAT_LEN);
