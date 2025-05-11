@@ -143,7 +143,7 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
+	Integer *group_by = new Integer[inputs[0].size() * 2];	//  May contain inputs of both parties
 	Integer *values = new Integer[inputs[0].size()];
 
 	Integer sums[first_cat_len][second_cat_len];
@@ -164,8 +164,7 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
-	// Calculate sums
-	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
+	Integer zero(BITSIZE, 0);
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
 			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
@@ -180,7 +179,6 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 		}	
 	}
 
-	// Reveal sums
 	for (int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j) {
 			cout << "Sum (" << i << ", " << j << "): " << sums[i][j].reveal<int>() << endl;
@@ -215,14 +213,10 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 		categories[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
-	// Calculate averages
-	Float zero = Float();	// Default party is PUBLIC
+	Float zero = Float();
 	Float one = Float(1, PUBLIC);
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < cat_len; ++j) {
-			// This compares the given category against the category of the current element
-			// The category of the element must be mapped to an integer to have less of a headache
-			// if a[i] == j then result = b[i] else result = 0
 			Bit eqcat = group_by[i].equal(categories[j]);
 			Float result_sum = zero.If(eqcat, values[i]);
 			Float result_count = zero.If(eqcat, one);
@@ -232,10 +226,9 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 		}	
 	}
 
-	// Reveal averages
     for (int i = 0; i < cat_len; ++i) {
 		float average = (sums[i] / counts[i]).reveal<double>();
-        cout << "average " << i << ": " << average << endl;
+        cout << "Average (" << i << "): " << average << endl;
 	}
 
 	delete[] group_by;
@@ -301,27 +294,17 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 }
 
 
+void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
 
-/**
- * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
- * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).
- * 
- * Note: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
- * one displayed.
- */
-void test_mode(int party, string inputs[], int input_len) {
-	Integer *a = new Integer[input_len];
-	Integer *b = new Integer[input_len];
-	Integer frequencies[CAT_LEN][CAT_LEN];
-	Integer modes[CAT_LEN];
-	Integer categories_a [CAT_LEN];
-	Integer categories_b [CAT_LEN];
+	Integer frequencies [first_cat_len][second_cat_len];
+	Integer modes[first_cat_len];
 
-	// Initialize the secure integers
-	for(int i = 0; i < input_len; ++i) {
-		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
-		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
-	}
+	Integer categories_a [first_cat_len];
+	Integer categories_b [second_cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 
 	// Initialize frequency count
 	for(int i = 0; i < CAT_LEN; ++i) {
@@ -330,27 +313,27 @@ void test_mode(int party, string inputs[], int input_len) {
 	}
 
 	// Initialize categories
-	for(int i = 0; i < CAT_LEN; ++i) 
+	for(int i = 0; i < first_cat_len; ++i) 
 		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
 
 	
-	for (int i = 0; i < CAT_LEN; ++i)
+	for (int i = 0; i < second_cat_len; ++i)
 		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
 
 
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	Integer one (BITSIZE, 1);
-	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < first_cat_len; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
-			Bit eq_groupby_cat = a[i].equal(categories_a[j]);
+			Bit eq_groupby_cat = group_by[i].equal(categories_a[j]);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
 			
-			for (int k = 0; k < CAT_LEN; ++k) {
-				Bit eq_val_cat = b[i].equal(categories_b[k]);
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_val_cat = group_by[sample_size + i].equal(categories_b[k]);
 				Integer result_val = zero.select(eq_val_cat, result_groupby);
 
 				frequencies[j][k] = frequencies[j][k] + result_val;
@@ -358,7 +341,6 @@ void test_mode(int party, string inputs[], int input_len) {
 		}	
 	}
 
-	
 	// With the frequencies calculated, find the mode for each group
 	for (int i = 0; i < CAT_LEN; ++i) {
 		Integer max(BITSIZE, 0);
@@ -377,38 +359,28 @@ void test_mode(int party, string inputs[], int input_len) {
 		modes[i] = mode;		
 	}
 
-
-	for (int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
-			cout << "group " << i <<  ", frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
-		}
-		cout << "mode of group " << i << ": " << modes[i].reveal<int>() << endl;
+	// Frequencies are not revealed, only the mode
+	for (int i = 0; i < first_cat_len; ++i) {
+		cout << "Group " << i << endl;
+		//for (int j = 0; j < second_cat_len; ++j) {
+		//	cout <<  "Frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
+		//}
+		cout << "Mode: " << modes[i].reveal<int>() << endl;
 	}
 
-	delete[] a;
-	delete[] b;
+	delete[] group_by;
 }
 
 
-/**
- * For the mode function, both the categorical variable used to groupby and the catogorical variable of the values must be mapped
- * to integers ranging from 0 to the needed range. At the moment does not work with continuous variables for both (why would it tbf).
- * 
- * Note: At the moment, if multiple value categories are fit to be the mode, then the last one numerically (according to the mapping) will be the 
- * one displayed.
- */
-void test_freq(int party, string inputs[], int input_len) {
-	Integer *a = new Integer[input_len];
-	Integer *b = new Integer[input_len];
-	Integer frequencies [CAT_LEN][CAT_LEN];
-	Integer categories_a [CAT_LEN];
-	Integer categories_b [CAT_LEN];
+void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
 
-	// Initialize the secure integers
-	for(int i = 0; i < input_len; ++i) {
-		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
-		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
-	}
+	Integer frequencies [first_cat_len][second_cat_len];
+	Integer categories_a [first_cat_len];
+	Integer categories_b [second_cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 
 	// Initialize frequency count
 	for(int i = 0; i < CAT_LEN; ++i) {
@@ -417,27 +389,27 @@ void test_freq(int party, string inputs[], int input_len) {
 	}
 
 	// Initialize categories
-	for(int i = 0; i < CAT_LEN; ++i) 
+	for(int i = 0; i < first_cat_len; ++i) 
 		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
 
 	
-	for (int i = 0; i < CAT_LEN; ++i)
+	for (int i = 0; i < second_cat_len; ++i)
 		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
 
 
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	Integer one (BITSIZE, 1);
-	for (int i = 0; i < input_len; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < first_cat_len; ++j) {
 			// This compares the given category against the category of the current element
 			// The category of the element must be mapped to an integer to have less of a headache
 			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
-			Bit eq_groupby_cat = a[i].equal(categories_a[j]);
+			Bit eq_groupby_cat = group_by[i].equal(categories_a[j]);
 			Integer result_groupby = zero.select(eq_groupby_cat, one);
 			
-			for (int k = 0; k < CAT_LEN; ++k) {
-				Bit eq_val_cat = b[i].equal(categories_b[k]);
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_val_cat = group_by[sample_size + i].equal(categories_b[k]);
 				Integer result_val = zero.select(eq_val_cat, result_groupby);
 
 				frequencies[j][k] = frequencies[j][k] + result_val;
@@ -445,15 +417,14 @@ void test_freq(int party, string inputs[], int input_len) {
 		}	
 	}
 
-	for (int i = 0; i < CAT_LEN; ++i) {
+	for (int i = 0; i < first_cat_len; ++i) {
 		cout << "Group " << i << endl;
-		for (int j = 0; j < CAT_LEN; ++j) {
+		for (int j = 0; j < second_cat_len; ++j) {
 			cout <<  "Frequency of the value " << j << ": " << frequencies[i][j].reveal<int>() << endl;
 		}
 	}
 
-	delete[] a;
-	delete[] b;
+	delete[] group_by;
 }
 
 
@@ -490,10 +461,10 @@ void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* a
 			utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 			break;
 		case 'm':
-			//test_mode(party, inputs.data(), inputs.size());
+			utils::time_it(test_mode, party, inputs, agg_cols, CAT_LEN, CAT_LEN);
 			break;
 		case 'f':
-			//test_freq(party, inputs.data(), inputs.size());
+			utils::time_it(test_freq, party, inputs, agg_cols, CAT_LEN, CAT_LEN);
 			break;
 		case 'd':
 			cout << "Standard Deviation" << endl;
