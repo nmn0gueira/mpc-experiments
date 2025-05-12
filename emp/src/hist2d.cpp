@@ -1,4 +1,5 @@
 #include "emp-sh2pc/emp-sh2pc.h"
+#include "utils/timing_utils.hpp"
 #include <iostream>
 #include <unistd.h>
 using namespace emp;
@@ -10,20 +11,19 @@ const int NUM_BINS_X = 5;
 const int NUM_BINS_Y = 5;
 
 
-void calc_extremeties(Float * arr, int size, Float & min, Float & max) {
+void calc_extremeties(Integer * arr, int size, Integer & min, Integer & max) {
 	// We need to determine the max and min values to determine the bins for each coordinate
 	for (int i = 0; i < size; ++i) {
-		// If the value is not less or equal than max_x than it is greater than max_x
-		Bit gt = !arr[i].less_equal(max);
-		max = max.If(gt, arr[i]);
+		Bit gt = arr[i] > max;
+		max = max.select(gt, arr[i]);
 
-		Bit lt = arr[i].less_than(min);
-		min = min.If(lt, arr[i]);
+		Bit lt = arr[i] < min;
+		min = min.select(lt, arr[i]);
 	}
 }
 
-void linspace(Float * arr, int size, Float min, Float max) {
-	Float step = (max - min) / Float(size - 1, PUBLIC);
+void linspace(Integer * arr, int size, Integer min, Integer max) {
+	Integer step = (max - min) / Integer(BITSIZE, size - 1);
 	arr[0] = min;
 	for (int i = 1; i < size - 1; ++i) {
 		arr[i] = arr[i-1] + step;
@@ -36,11 +36,11 @@ void linspace(Float * arr, int size, Float min, Float max) {
  * Although the naming is borrowed from np.digitize, the functionality is slightly different. This function
  * takes bin edges as input and "returns" an index adjusted for zero-indexing.
  */
-void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integer & bin_to_index) {
+void digitize(Integer val, Integer * bins, Integer * bin_edges, int num_edges, Integer & bin_to_index) {
 	static Bit false_bit = Bit();
 	Bit found_index = Bit();
 	for (int i = 1; i < num_edges; ++i) {	// Starts at 1 since it is useless to do a leq compare against the min edge
-		Bit leq = val.less_equal(bin_edges[i]);
+		Bit leq = val <= bin_edges[i];
 
 		// The select bit will only be true if leq is true AND the correct index has not been found yet
 		Bit select = false_bit.select(!found_index, leq);
@@ -58,21 +58,24 @@ void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integ
  * being a count. In the feature this could be any sort of aggregation ig, like in xtabs.
  */
 void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
-	Float *a = new Float[input_len];
-	Float *b = new Float[input_len];
+	Integer *a = new Integer[input_len];
+	Integer *b = new Integer[input_len];
 
 	int num_edges_x = num_bins_x + 1;
 	int num_edges_y = num_bins_y + 1;
-	Float *bin_edges_x = new Float[num_edges_x];
-	Float *bin_edges_y = new Float[num_edges_y];
+	Integer bin_edges_x[num_edges_x];
+	Integer bin_edges_y[num_edges_y];
 
-	Integer *bins_x = new Integer[num_bins_x];
-	Integer *bins_y = new Integer[num_bins_y];
-	Integer *hist2d = new Integer[num_bins_y * num_bins_x];
+	Integer bins_x[num_bins_x];
+	Integer bins_y[num_bins_y];
+	Integer hist2d[num_bins_y * num_bins_x];
 
 	for (int i = 0; i < input_len; ++i) {
-		a[i] = Float(stoi(inputs[i]), ALICE);
-		b[i] = Float(stoi(inputs[i]), BOB);
+		a[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
+	}
+
+	for (int i = 0; i < input_len; ++i) {
+		b[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
 	}
 
 	for (int i = 0; i < num_bins_x; ++i) {
@@ -89,10 +92,10 @@ void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int 
 		}
 	}
 
-	Float max_x(numeric_limits<float>::min(), PUBLIC);
-	Float min_x(numeric_limits<float>::max(), PUBLIC);
-	Float max_y(numeric_limits<float>::min(), PUBLIC);
-	Float min_y(numeric_limits<float>::max(), PUBLIC);
+	Integer max_x(BITSIZE, numeric_limits<int>::min(), PUBLIC);
+	Integer min_x(BITSIZE, numeric_limits<int>::max(), PUBLIC);
+	Integer max_y(BITSIZE, numeric_limits<int>::min(), PUBLIC);
+	Integer min_y(BITSIZE, numeric_limits<int>::max(), PUBLIC);
 	calc_extremeties(a, input_len, min_x, max_x);
 	calc_extremeties(b, input_len, min_y, max_y);
 
@@ -100,15 +103,13 @@ void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int 
 	linspace(bin_edges_y, num_edges_y, min_y, max_y);
 
 	Integer zero(BITSIZE, 0);
-	Integer one(BITSIZE, 1);
 	for (int i = 0; i < input_len; ++i) {
-		Float x_val = a[i];
-		Float y_val = b[i];
+		Integer x_val = a[i];
+		Integer y_val = b[i];
 		Integer x_bin(BITSIZE, 0, PUBLIC);
 		Integer y_bin(BITSIZE, 0 , PUBLIC);
 
 		digitize(x_val, bins_x, bin_edges_x, num_edges_x, x_bin);
-
 		digitize(y_val, bins_y, bin_edges_y, num_edges_y, y_bin);
 
 		// Update histogram
@@ -120,37 +121,33 @@ void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int 
 				Bit eq_y = y_bin.equal(bins_y[y]);
 
 				Bit eq_bin = eq_x & eq_y;
+				// hist2d[hist_index] = hist2d[hist_index] + 1;
+				emp::add_full(hist2d[hist_index].bits.data(), nullptr, hist2d[hist_index].bits.data(), zero.bits.data(), &eq_bin, hist2d[hist_index].size());
 
-				hist2d[hist_index] = hist2d[hist_index] + zero.select(eq_bin, one);
 			}
 		}
 	}
 
-	
-	//  Print results
 	for (int i = 0; i < num_edges_x; ++i) {
-		cout << "Bin Edge x (" << i << "): " << bin_edges_x[i].reveal<double>() << endl;
+		cout << "Bin Edge x (" << i << "): " << bin_edges_x[i].reveal<int>() << endl;
 	}
 
 	for (int i = 0; i < num_edges_y; ++i) {
-		cout << "Bin Edge y (" << i << "): " << bin_edges_y[i].reveal<double>() << endl;
+		cout << "Bin Edge y (" << i << "): " << bin_edges_y[i].reveal<int>() << endl;
 	}
 
-	int total_sum = 0;
+	//int total_sum = 0;
 	for (int y = 0; y < num_bins_y; ++y) {
 		for (int x = 0; x < num_bins_x; ++x) {
 			int hist_value =  hist2d[y * num_bins_x + x].reveal<int>();
-			total_sum += hist_value;
+			//total_sum += hist_value;
 			cout << "Hist2d (" << x << ", " << y << "): " << hist_value << endl;
 		}
 	}
-	cout << "Total elements check: " << total_sum << endl;
+	//cout << "Total elements check: " << total_sum << endl;
 
 	delete[] a;
 	delete[] b;
-	delete[] bin_edges_x;
-	delete[] bin_edges_y;
-	delete[] hist2d;
 }
 
 
@@ -169,8 +166,8 @@ int main(int argc, char **argv) {
 	char* filename = argv[argc - 1];
 	
 	NetIO * io = new NetIO(ip, port);
-	auto ctx = setup_semi_honest(io, party);
-	ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
+	setup_semi_honest(io, party);
+	//ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
 	
 	ifstream infile(filename);
 	if (!infile.is_open()) {
@@ -186,11 +183,8 @@ int main(int argc, char **argv) {
 	}
 	infile.close();
 
-	auto start = chrono::high_resolution_clock::now();
-	test_hist2d(inputs.data(), inputs.size());
-	auto end = chrono::high_resolution_clock::now();
-	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	cout << "Execution time of hist2d with " << inputs.size() << " elements: " << duration << " ms" << endl;
+	cout << "Number of elements: " << inputs.size() << endl;
+	utils::time_it(test_hist2d, inputs.data(), inputs.size(), NUM_BINS_X, NUM_BINS_Y);
 	
 	delete io;
     return 0;

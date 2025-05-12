@@ -133,8 +133,6 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 
    delete[] group_by;
    delete[] values;
-   //delete[] categories;
-   //delete[] sums;
 }
 
 /**
@@ -613,7 +611,7 @@ int main(int argc, char **argv) {
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
 
-	vector<vector<string>> input_matrix;
+	vector<vector<string>> input_matrix;	// Dataset, essentially
 
 	DIR *dir;
 	struct dirent *ent;
@@ -645,6 +643,7 @@ int main(int argc, char **argv) {
 	} else {
 		// Could not open directory
 		perror("Failed to open directory");
+		delete io;
 		return EXIT_FAILURE;
 	}
 
