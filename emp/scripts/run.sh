@@ -19,7 +19,8 @@ HIST2D_INPUT_A=$DATA_DIR/hist2d/alice/32.alice.dat
 HIST2D_INPUT_B=$DATA_DIR/hist2d/bob/32.bob.dat
 
 # Additonal parameters
-XTABS_GROUPBY_COLUMNS=a0b0
+XTABS_GROUPBY_ONE=a0
+XTABS_GROUPBY_TWO=a0b0
 XTABS_VALUE_COLUMN=b1
 
 # Default values
@@ -37,7 +38,8 @@ usage() {
     echo ""
     echo "Programs:"
     echo "  millionaire                     Secure comparison"
-    echo "  xtabs <aggregation>             Cross-tabulation: (s)um | (a)vg | (m)ode | (f)req"
+    echo "  xtabs-1 <aggregation>             Cross-tabulation (1 group by column): (s)um | (a)vg | (m)ode | (f)req"
+    echo "  xtabs-2 <aggregation>             Cross-tabulation (2 group by columns): (s)um | (a)vg | (m)ode | (f)req"
     echo "  linreg                          Linear regression"
     echo "  hist2d                          2D histogram"
 }
@@ -86,15 +88,23 @@ case $program in
         alice_command="./build/bin/millionaire $PARTY_A $PORT $MILLIONAIRE_INPUT_A"
         bob_command="./build/bin/millionaire $PARTY_B $PORT $address $MILLIONAIRE_INPUT_B"
         ;;
-    "xtabs" ) 
+    "xtabs-1" ) 
         aggregation=$2
         if [ -z "$aggregation" ]; then
-            echo "xtabs requires an aggregation type: sum | avg | mode | freq"
-            usage
+            echo "xtabs requires an aggregation type (sum | avg | mode | freq)"
             exit 1
         fi
-        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $XTABS_GROUPBY_COLUMNS $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
-        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $XTABS_INPUT_B"
+        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $XTABS_GROUPBY_ONE $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
+        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $XTABS_GROUPBY_ONE $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
+        ;;
+    "xtabs-2" ) 
+        aggregation=$2
+        if [ -z "$aggregation" ]; then
+            echo "xtabs requires an aggregation type (sum | avg | mode | freq)"
+            exit 1
+        fi
+        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $XTABS_GROUPBY_TWO $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
+        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $XTABS_GROUPBY_TWO $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
         ;;
     "linreg" )
         alice_command="./build/bin/linreg $PARTY_A $PORT $LINREG_INPUT_A"
