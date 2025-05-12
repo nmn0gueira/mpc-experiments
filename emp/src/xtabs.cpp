@@ -98,8 +98,8 @@ void initialize_values_f(int party, Float *values, vector<vector<string>> inputs
 
 void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
-	Integer *values = new Integer[inputs[0].size()];
+	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
+	Integer *values = new Integer[sample_size];
 	
 	Integer sums[cat_len];	// If CAT_LEN was not fixed, each dimension would be initialized to the respective number of categories
 	Integer categories[cat_len];
@@ -141,10 +141,9 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
  * Same as the test_sum1 function, but now we are grouping by two categorical variables.
  */
 void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
-	
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size() * 2];	//  May contain inputs of both parties
-	Integer *values = new Integer[inputs[0].size()];
+	Integer *group_by = new Integer[sample_size * 2];	//  May contain inputs of both parties
+	Integer *values = new Integer[sample_size];
 
 	Integer sums[first_cat_len][second_cat_len];
 	Integer categories_1[first_cat_len];
@@ -153,14 +152,17 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 	initialize_values_i(party, values, inputs, value_col);
 
-	for (int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
 			sums[i][j] = Integer(BITSIZE, 0, PUBLIC);
 		}
 	}
 
-	for (int i = 0; i < CAT_LEN; ++i) {
+	for (int i = 0; i < first_cat_len; ++i) {
 		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	for (int i = 0; i < second_cat_len; ++i) {
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
@@ -168,11 +170,11 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
 			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
-			Integer result_first_cat = zero.select(eq_first_cat, values[i]);
 			
 			for (int k = 0; k < second_cat_len; ++k) {
 				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
-				Integer result_val = zero.select(eq_second_cat, result_first_cat);
+				Bit match = eq_first_cat & eq_second_cat;
+				Integer result_val = zero.select(match, values[i]);
 
 				sums[j][k] = sums[j][k] + result_val;	// Only if both categories match do we add the value (otherwise adds 0)
 			}	
@@ -196,8 +198,8 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
  */
 void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
-	Float *values = new Float[inputs[0].size()];
+	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
+	Float *values = new Float[sample_size];
 	
 	Float sums[cat_len];
 	Float counts [cat_len];
@@ -219,7 +221,7 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 		for (int j = 0; j < cat_len; ++j) {
 			Bit eqcat = group_by[i].equal(categories[j]);
 			Float result_sum = zero.If(eqcat, values[i]);
-			Float result_count = zero.If(eqcat, one);
+			Float result_count = zero.If(eqcat, one);	// I do not know how to optimize the sum of a bit to a float like in the fast variant
 		
 			sums[j] = sums[j] + result_sum;
 			counts[j] = counts[j] + result_count;
@@ -239,8 +241,8 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 
 void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
-	Float *values = new Float[inputs[0].size()];
+	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
+	Float *values = new Float[sample_size];
 	
 	Float sums[first_cat_len][second_cat_len];
 	Float counts[first_cat_len][second_cat_len];
@@ -250,15 +252,18 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 	initialize_values_f(party, values, inputs, value_col);
 
-	for (int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
 			sums[i][j] = Float();
 			counts[i][j] = Float();
 		}
 	}
 
-	for (int i = 0; i < CAT_LEN; ++i) {
+	for (int i = 0; i < first_cat_len; ++i) {
 		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	for (int i = 0; i < second_cat_len; ++i) {
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
@@ -267,13 +272,14 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
 			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
-			Float result_first_cat_sum = zero.If(eq_first_cat, values[i]);
-			Float result_first_cat_count = zero.If(eq_first_cat, one);
 			
 			for (int k = 0; k < second_cat_len; ++k) {
 				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
-				Float result_sum = zero.If(eq_second_cat, result_first_cat_sum);
-				Float result_count = zero.If(eq_second_cat, result_first_cat_count);
+				Bit match = eq_first_cat & eq_second_cat;
+				
+				Float result_sum = zero.If(match, values[i]);
+				Float result_count = zero.If(match, one);	// I do not know how to optimize the sum of a bit to a float like in the fast variant
+
 				sums[j][k] = sums[j][k] + result_sum;
 				counts[j][k] = counts[j][k] + result_count;	
 			}	
@@ -293,8 +299,8 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 
 void test_average1_fast(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size()];		//  May contain inputs of both parties
-	Integer *values = new Integer[inputs[0].size()];
+	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
+	Integer *values = new Integer[sample_size];
 	
 	Integer sums[cat_len];
 	Integer counts [cat_len];
@@ -334,8 +340,8 @@ void test_average1_fast(int party, vector<vector<string>> inputs, char* agg_cols
 
 void test_average2_fast(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
-	Integer *values = new Integer[inputs[0].size()];
+	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
+	Integer *values = new Integer[sample_size];
 	
 	Integer sums[first_cat_len][second_cat_len];
 	Integer counts[first_cat_len][second_cat_len];
@@ -345,15 +351,18 @@ void test_average2_fast(int party, vector<vector<string>> inputs, char* agg_cols
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 	initialize_values_i(party, values, inputs, value_col);
 
-	for (int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j) {
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
 			sums[i][j] = Integer(BITSIZE, 0, PUBLIC);
 			counts[i][j] = Integer(BITSIZE, 0, PUBLIC);
 		}
 	}
 
-	for (int i = 0; i < CAT_LEN; ++i) {
+	for (int i = 0; i < first_cat_len; ++i) {
 		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	for (int i = 0; i < second_cat_len; ++i) {
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
@@ -390,56 +399,51 @@ void test_average2_fast(int party, vector<vector<string>> inputs, char* agg_cols
 
 void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
+	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 
 	Integer frequencies [first_cat_len][second_cat_len];
 	Integer modes[first_cat_len];
 
-	Integer categories_a [first_cat_len];
-	Integer categories_b [second_cat_len];
+	Integer categories_1[first_cat_len];
+	Integer categories_2[second_cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 
 	// Initialize frequency count
-	for(int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j)
+	for(int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j)
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
 	// Initialize categories
 	for(int i = 0; i < first_cat_len; ++i) 
-		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
 
 	
 	for (int i = 0; i < second_cat_len; ++i)
-		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 
 
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
-	Integer one (BITSIZE, 1);
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
-			// This compares the given category against the category of the current element
-			// The category of the element must be mapped to an integer to have less of a headache
-			// if a[i] == j then result = b[i] else result = 0 (because we use 0 as the start value)
-			Bit eq_groupby_cat = group_by[i].equal(categories_a[j]);
-			Integer result_groupby = zero.select(eq_groupby_cat, one);
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
 			
 			for (int k = 0; k < second_cat_len; ++k) {
-				Bit eq_val_cat = group_by[sample_size + i].equal(categories_b[k]);
-				Integer result_val = zero.select(eq_val_cat, result_groupby);
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
+				Bit match = eq_first_cat & eq_second_cat;
 
-				frequencies[j][k] = frequencies[j][k] + result_val;
+				emp::add_full(frequencies[j][k].bits.data(), nullptr, frequencies[j][k].bits.data(), zero.bits.data(), &match, frequencies[j][k].size());	// counts[j][k] = counts[j][k] + match
 			}	
 		}	
 	}
 
 	// With the frequencies calculated, find the mode for each group
-	for (int i = 0; i < CAT_LEN; ++i) {
+	for (int i = 0; i < first_cat_len; ++i) {
 		Integer max(BITSIZE, 0);
 		Integer mode(BITSIZE, -1);
-		for (int j = 0; j < CAT_LEN; ++j) {
+		for (int j = 0; j < second_cat_len; ++j) {
 			Integer freq = frequencies[i][j];
 			Bit geq = freq.geq(max);
 
@@ -448,7 +452,7 @@ void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 
 			// If max was assigned a new value, we need to update the mode for the group
 			Bit eq_max = freq.equal(max);
-			mode = mode.select(eq_max, categories_b[j]);
+			mode = mode.select(eq_max, categories_2[j]);
 		}
 		modes[i] = mode;		
 	}
@@ -468,42 +472,38 @@ void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 
 void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
-	Integer *group_by = new Integer[inputs[0].size() * 2];		//  May contain inputs of both parties
+	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 
 	Integer frequencies [first_cat_len][second_cat_len];
-	Integer categories_a [first_cat_len];
-	Integer categories_b [second_cat_len];
+	Integer categories_1 [first_cat_len];
+	Integer categories_2 [second_cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 
-	// Initialize frequency count
-	for(int i = 0; i < CAT_LEN; ++i) {
-		for (int j = 0; j < CAT_LEN; ++j)
+	for(int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j)
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
-	// Initialize categories
 	for(int i = 0; i < first_cat_len; ++i) 
-		categories_a[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
 
 	
 	for (int i = 0; i < second_cat_len; ++i)
-		categories_b[i] = Integer(BITSIZE, i, PUBLIC);
+		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 
 
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
-	Integer one (BITSIZE, 1);
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
-			Bit eq_groupby_cat = group_by[i].equal(categories_a[j]);
-			Integer result_groupby = zero.select(eq_groupby_cat, one);
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
 			
 			for (int k = 0; k < second_cat_len; ++k) {
-				Bit eq_val_cat = group_by[sample_size + i].equal(categories_b[k]);
-				Integer result_val = zero.select(eq_val_cat, result_groupby);
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
+				Bit match = eq_first_cat & eq_second_cat;
 
-				frequencies[j][k] = frequencies[j][k] + result_val;
+				emp::add_full(frequencies[j][k].bits.data(), nullptr, frequencies[j][k].bits.data(), zero.bits.data(), &match, frequencies[j][k].size());	// counts[j][k] = counts[j][k] + match
 			}	
 		}	
 	}
@@ -549,6 +549,7 @@ void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* a
 	switch (aggregation) {
 		case 's':
 			utils::time_it(test_sum2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			break;
 		case 'a':
 			//utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 			utils::time_it(test_average2_fast, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
@@ -569,7 +570,7 @@ void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* a
 	}
 }
 
-
+// Right now this requires setting a value column for mode and frequency counts even though they are not used
 void test_xtabs(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
 	int num_agg_cols = strlen(agg_cols) / 2;	// Number of aggregation columns (e.g. a0b1 -> 2)
 
