@@ -4,6 +4,7 @@
  * circuits, this program implements a much more limited version of linear regression which provides functionality for only one feature and one label in addition to very basic preprocessing.
  */
 #include "emp-sh2pc/emp-sh2pc.h"
+#include "utils/timing_utils.hpp"
 #include <iostream>
 #include <unistd.h>
 using namespace emp;
@@ -92,7 +93,7 @@ int main(int argc, char **argv) {
 	
 	NetIO * io = new NetIO(ip, port);
 	auto ctx = setup_semi_honest(io, party);
-	ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
+	ctx->set_batch_size(1024*1024);
 	
 	ifstream infile(filename);
 	if (!infile.is_open()) {
@@ -108,11 +109,9 @@ int main(int argc, char **argv) {
 	}
 	infile.close();
 
-	auto start = chrono::high_resolution_clock::now();
-	test_linreg(inputs.data(), inputs.size());
-	auto end = chrono::high_resolution_clock::now();
-	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	cout << "Execution time of linreg with " << inputs.size() << " elements: " << duration << " ms" << endl;
+
+	cout << "Number of elements: " << inputs.size() << endl;
+	utils::time_it(test_linreg, inputs.data(), inputs.size(), true);
 	
 	delete io;
     return 0;

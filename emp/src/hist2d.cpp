@@ -166,8 +166,8 @@ int main(int argc, char **argv) {
 	char* filename = argv[argc - 1];
 	
 	NetIO * io = new NetIO(ip, port);
-	setup_semi_honest(io, party);
-	//ctx->set_batch_size(1024*1024);	// I assume this makes the process faster when working with floats
+	auto ctx = setup_semi_honest(io, party);
+	ctx->set_batch_size(1024*1024);
 	
 	ifstream infile(filename);
 	if (!infile.is_open()) {
