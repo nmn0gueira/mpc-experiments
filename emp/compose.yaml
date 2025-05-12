@@ -3,16 +3,19 @@ services:
   alice:
     build: .
     networks:
-      - mynet
-    command: ["./docker.sh", "alice", "${PROGRAM}"]
+      mynet:
+        ipv4_address: 172.28.0.10
+    command: ["scripts/run.sh", "-a", "${PROGRAM}", "${ARG}"]
   bob:
     build: .
     networks:
-      - mynet
-    depends_on: # Alice is the server
-      - alice
-    command: ["./docker.sh", "bob", "${PROGRAM}"]
+      mynet:
+        ipv4_address: 172.28.0.11
+    command: ["scripts/run.sh", "-b", "172.28.0.10", "${PROGRAM}", "${ARG}"]
 
 networks:
   mynet:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

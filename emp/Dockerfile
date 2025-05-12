@@ -45,5 +45,7 @@ WORKDIR /usr/src/
 
 # Copy source code and install
 COPY . /emp
+RUN mkdir /emp/build
+WORKDIR /emp/build
+RUN cmake .. && make
 WORKDIR /emp
-RUN cmake . && make
