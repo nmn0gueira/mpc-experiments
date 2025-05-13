@@ -29,7 +29,7 @@ bob=false
 address=127.0.0.1
 
 usage() {
-    echo "Usage: $0 [-a] [-b <address>] <program_name> [args]"
+    echo "Usage: $0 [-a] [-b <alice_address>] <program_name> [<args>]"
     echo ""
     echo "Options:"
     echo "  -a                Run as Alice"
