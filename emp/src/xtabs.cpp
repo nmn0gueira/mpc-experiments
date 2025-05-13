@@ -106,13 +106,11 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 	initialize_values_i(party, values, inputs, value_col);
 
-	// Initialize sums
 	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Integer(BITSIZE, 0, PUBLIC);
 		categories[i] = Integer(BITSIZE, i, PUBLIC);
 	}
 
-	// Calculate sums
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < cat_len; ++j) {
@@ -126,7 +124,6 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 		}	
 	}
 
-	// Reveal sums
     for (int i = 0; i < cat_len; ++i) {
         cout << "sum " << i << ": " << sums[i].reveal<int>() << endl;
    }
@@ -206,7 +203,6 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 	initialize_values_f(party, values, inputs, value_col);
 
-	// Initialize sums
 	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Float();
 		counts[i] = Float();
@@ -407,13 +403,11 @@ void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
 
-	// Initialize frequency count
 	for(int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j)
 			frequencies[i][j] = Integer(BITSIZE, 0);
 	}
 
-	// Initialize categories
 	for(int i = 0; i < first_cat_len; ++i) 
 		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
 
@@ -421,8 +415,6 @@ void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 	for (int i = 0; i < second_cat_len; ++i)
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
 
-
-	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
 	for (int i = 0; i < sample_size; ++i) {
 		for (int j = 0; j < first_cat_len; ++j) {
@@ -489,7 +481,6 @@ void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 	
 	for (int i = 0; i < second_cat_len; ++i)
 		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
-
 
 	// Calculate frequencies of each item by group
 	Integer zero(BITSIZE, 0);	// Default party is PUBLIC
@@ -615,6 +606,7 @@ int main(int argc, char **argv) {
 
 	DIR *dir;
 	struct dirent *ent;
+	// Reads the files in order and pushes the contents to the input_matrix. As such, the order of the files is important (which the generator script handles)
 	if ((dir = opendir(input_dir)) != NULL) {
 		while ((ent = readdir(dir)) != NULL) {
 			// Skip the current directory "." and the parent directory ".."
@@ -647,8 +639,17 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
+	// Assert that all files have the same number of elements
+	for (size_t i = 1; i < input_matrix.size(); ++i) {
+		if (input_matrix[i].size() != input_matrix[0].size()) {
+			cerr << "Error: All files must have the same number of elements." << endl;
+			delete io;
+			return 1;
+		}
+	}
+
 	cout << "Number of files read: " << input_matrix.size() << endl;
-	cout << "Number of elements in each file: " << input_matrix[0].size() << endl; // Assuming all files have the same number of elements
+	cout << "Number of elements in each file: " << input_matrix[0].size() << endl;
 	test_xtabs(party, input_matrix, aggregation[0], agg_cols, value_col);
 
 	delete io;
