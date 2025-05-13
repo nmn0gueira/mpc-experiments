@@ -3,6 +3,7 @@ import numpy as np
 from operator import itemgetter
 
 BASE_DIR = "data/"
+file_counters = {}
 
 def create_dirs(program):
     dirname = "data/"+program
@@ -16,15 +17,20 @@ def create_dirs(program):
             if e.errno != errno.EEXIST: raise
 
 
-def get_data_filepath(program, n, party):
-    return f"{BASE_DIR}{program}/{party}/{n}.{party}.dat"
+def get_data_filepath(program, party):
+    dir_path = os.path.join(BASE_DIR, program, party)
+    if dir_path not in file_counters:
+        file_counters[dir_path] = 1
+    else:
+        file_counters[dir_path] += 1
+    filename = f"{file_counters[dir_path]}.dat"
+    return os.path.join(dir_path, filename)
 
 
 def write_to_file(filepath, data):
     with open(filepath, 'w') as f:
         for item in data:
             f.write(f"{item}\n")
-
 
 # If necessary, change this to account for more than 1D arrays
 def get_rand_list(bits, l):
@@ -59,7 +65,7 @@ def gen_input(program, n, l, adjust_bit_length=True):
     list_b = get_rand_list(bits, l)
     
     for party, data in zip(["alice", "bob"], [list_a, list_b]):
-        filepath = get_data_filepath(program, n, party)
+        filepath = get_data_filepath(program, party)
         write_to_file(filepath, data)
     
     return list_a, list_b

@@ -13,10 +13,10 @@ MILLIONAIRE_INPUT_A=70
 MILLIONAIRE_INPUT_B=20
 XTABS_INPUT_A=$DATA_DIR/xtabs/alice
 XTABS_INPUT_B=$DATA_DIR/xtabs/bob
-LINREG_INPUT_A=$DATA_DIR/linreg/alice/32.alice.dat
-LINREG_INPUT_B=$DATA_DIR/linreg/bob/32.bob.dat
-HIST2D_INPUT_A=$DATA_DIR/hist2d/alice/32.alice.dat
-HIST2D_INPUT_B=$DATA_DIR/hist2d/bob/32.bob.dat
+LINREG_INPUT_A=$DATA_DIR/linreg/alice/1.dat
+LINREG_INPUT_B=$DATA_DIR/linreg/bob/1.dat
+HIST2D_INPUT_A=$DATA_DIR/hist2d/alice/1.dat
+HIST2D_INPUT_B=$DATA_DIR/hist2d/bob/1.dat
 
 # Additonal parameters
 XTABS_GROUPBY_ONE=a0
@@ -38,8 +38,8 @@ usage() {
     echo ""
     echo "Programs:"
     echo "  millionaire                     Secure comparison"
-    echo "  xtabs-1 <aggregation>             Cross-tabulation (1 group by column): (s)um | (a)vg | (m)ode | (f)req"
-    echo "  xtabs-2 <aggregation>             Cross-tabulation (2 group by columns): (s)um | (a)vg | (m)ode | (f)req"
+    echo "  xtabs-1 <aggregation>           Cross-tabulation (1 group by column): (s)um | (a)vg | (m)ode | (f)req"
+    echo "  xtabs-2 <aggregation>           Cross-tabulation (2 group by columns): (s)um | (a)vg | (m)ode | (f)req"
     echo "  linreg                          Linear regression"
     echo "  hist2d                          2D histogram"
 }
