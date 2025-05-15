@@ -5,13 +5,13 @@ services:
     networks:
       mynet:
         ipv4_address: 172.28.0.10
-    command: ["scripts/run.sh", "-a", "${PROGRAM}", "${ARG}"]
+    command: scripts/run.sh -a ${PROGRAM} ${EXTRA_ARGS}
   bob:
     build: .
     networks:
       mynet:
         ipv4_address: 172.28.0.11
-    command: ["scripts/run.sh", "-b", "172.28.0.10", "${PROGRAM}", "${ARG}"]
+    command: scripts/run.sh -b 172.28.0.10 ${PROGRAM} ${EXTRA_ARGS}
 
 networks:
   mynet:

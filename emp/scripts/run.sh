@@ -38,8 +38,7 @@ usage() {
     echo ""
     echo "Programs:"
     echo "  millionaire                     Secure comparison"
-    echo "  xtabs-1 <aggregation>           Cross-tabulation (1 group by column): (s)um | (a)vg | (m)ode | (f)req"
-    echo "  xtabs-2 <aggregation>           Cross-tabulation (2 group by columns): (s)um | (a)vg | (m)ode | (f)req"
+    echo "  xtabs <aggregation> <groupby>   Cross-tabulation ((s)um | (a)vg | (m)ode | (f)req) and number of group by columns (1 or 2)"
     echo "  linreg                          Linear regression"
     echo "  hist2d                          2D histogram"
 }
@@ -88,23 +87,23 @@ case $program in
         alice_command="./build/bin/millionaire $PARTY_A $PORT $MILLIONAIRE_INPUT_A"
         bob_command="./build/bin/millionaire $PARTY_B $PORT $address $MILLIONAIRE_INPUT_B"
         ;;
-    "xtabs-1" ) 
+    "xtabs" ) 
         aggregation=$2
-        if [ -z "$aggregation" ]; then
-            echo "xtabs requires an aggregation type (sum | avg | mode | freq)"
+        groupby=$3
+        if [ -z "$aggregation" ] || [ -z "$groupby" ]; then
+            echo "xtabs requires an aggregation type ((s)um | (a)vg | (m)ode | (f)req) and number of group by columns (1 or 2)"
             exit 1
         fi
-        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $XTABS_GROUPBY_ONE $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
-        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $XTABS_GROUPBY_ONE $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
-        ;;
-    "xtabs-2" ) 
-        aggregation=$2
-        if [ -z "$aggregation" ]; then
-            echo "xtabs requires an aggregation type (sum | avg | mode | freq)"
+        if [ "$groupby" = "1" ]; then
+            groupby=$XTABS_GROUPBY_ONE
+        elif [ "$groupby" = "2" ]; then
+            groupby=$XTABS_GROUPBY_TWO
+        else
+            echo "Invalid group by column count. Use 1 or 2."
             exit 1
         fi
-        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $XTABS_GROUPBY_TWO $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
-        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $XTABS_GROUPBY_TWO $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
+        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
+        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
         ;;
     "linreg" )
         alice_command="./build/bin/linreg $PARTY_A $PORT $LINREG_INPUT_A"
