@@ -139,8 +139,8 @@ RUN make clean && make ${machine} && cp ${machine} /usr/local/bin/
 ################################################################################
 FROM machine AS program
 
-ARG src="linreg"
-ARG compile_options="--field=128 --rows 100"
+ARG src=
+ARG compile_options=
 
 # Input must already exist in the data folder
 COPY /src/${src}.py .

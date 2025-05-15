@@ -1,18 +1,73 @@
-version: '1.0'
+# Environment variables need to be set for composing (e.g., export PROGRAM=linreg)
+# If you want to run the dealer, use docker-compose --profile dealer up
 
 services:
   alice:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Buildenv arguments
+        - arch=native
+        - cxx=clang++-11
+        - use_ntl=0
+        - prep_dir="Player-Data"
+        - ssl_dir="Player-Data"
+        - cryptoplayers=0
+        # Machine arguments
+        - machine=${MACHINE}
+        - gfp_mod_sz=2 # only for gfp
+        # Program arguments
+        - src=${PROGRAM}
+        - compile_options=${COMPILE_OPTIONS_ALICE}
     networks:
       - mynet
-    ports:
-      - "8080:8080"
+    command: ./${MACHINE} 0 ${PROGRAM} -h alice ${EXTRA_ARGS}
   bob:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Buildenv arguments
+        - arch=native
+        - cxx=clang++-11
+        - use_ntl=0
+        - prep_dir="Player-Data"
+        - ssl_dir="Player-Data"
+        - cryptoplayers=0
+        # Machine arguments
+        - machine=${MACHINE}
+        - gfp_mod_sz=2 # only for gfp
+        # Program arguments
+        - src=${PROGRAM}
+        - compile_options=${COMPILE_OPTIONS_ALICE}
     networks:
       - mynet
-    depends_on:
-      - alice
+    command: ./${MACHINE} 1 ${PROGRAM} -h alice ${EXTRA_ARGS}
+
+  dealer:
+    profiles:
+      - dealer
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Buildenv arguments
+        - arch=native
+        - cxx=clang++-11
+        - use_ntl=0
+        - prep_dir="Player-Data"
+        - ssl_dir="Player-Data"
+        - cryptoplayers=0
+        # Machine arguments
+        - machine=${MACHINE}
+        - gfp_mod_sz=2 # only for gfp
+        # Program arguments
+        - src=${PROGRAM}
+        - compile_options=${COMPILE_OPTIONS_DEALER}
+    networks:
+      - mynet
+    command: ./${MACHINE} 2 ${PROGRAM} -h alice ${EXTRA_ARGS}
 
 networks:
   mynet:
