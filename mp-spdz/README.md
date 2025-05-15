@@ -21,11 +21,11 @@ where `<fromsource>` is either `yes` or `no`. Note that building from source wil
 To simplify the usage of MP-SPDZ locally while keep the environment uncluttered, a few are provided to scripts to help with the data setup, compilation, and running of the programs. The scripts are located in the `scripts` folder.
 
 #### Setup Data
-To run the programs, you will need to setup sample data. You can do this by running the `setup_data.sh` script:
+To run the programs, you will need to prepare program input. You can do this by running the `iprep.sh` script:
 ```bash
-scripts/setup_data.sh -g -c <program>
+scripts/iprep.sh -g -c <program> [<geninput_args>]
 ```
-where `-g` and `-c` are optional flags to generate the data and copy it to `MP-SPDZ/Player-Data`, respectively, and `<program>` is the name of the program you want to setup the data for.
+where `-g` and `-c` are optional flags to generate the data and copy it to `MP-SPDZ/Player-Data`, respectively, and `<program>` is the name of the program you want to setup the data for. The `<geninput_args>` are the arguments that you want to pass to the `geninput.py` script.
 
 #### Compiling
 To run a program, you will first need to compile it. You can do this by running the `compile.sh` script:
@@ -48,27 +48,56 @@ where `<protocol_script>` is the bash script of the protocol that you want to ru
 
 ## Running in Docker
 
-The `Dockerfile` provided is a modified version of the one provided in the MP-SPDZ repository. You can see the `Dockerfile` for more examples of how it can be used (remaining from the original MP-SPDZ repository).
+To run the examples in a Docker environment, you have two options: build a custom Docker image using the provided `Dockerfile`, or use the included `compose.yml` file.
 
-### Localhost
-Build the Docker image using the provided Dockerfile (with `mascot` as an example):
+The supplied Dockerfile is a modified version of the one from the MP-SPDZ repository. Refer to it for additional usage examples preserved from the original source.
+
+### Quick Start
+Build the image for a specific computation machine (e.g., mascot-party.x) and program (e.g., linreg):
 ```bash
-docker build --tag mpspdz:mascot-party --build-arg machine=mascot-party.x --build-arg src=linreg .
+docker build \ 
+--target program \
+--tag mpspdz:mascot-party \
+--build-arg machine=mascot-party.x \
+--build-arg src=linreg . \
+.
 ```
-Then, run the Docker container:
+Then, run the container:
 ```bash
 docker run --rm -it mpspdz:mascot-party ./Scripts/mascot.sh linreg
 ```
 
-### Distributed
---TBD--
+Alternatively, use Docker Compose to build and run with a similar setup. First, make sure the `compose.yaml` is configured appropriately (by exporting the necessary variables). Then:
+```bash
+docker compose up
+```
 
+### Optimizing Build Time
+The Dockerfile defines multiple build stages, such as `buildenv`, `machine`-specific stages, and `program`. You can pre-build intermediate targets to speed up future builds:
+```bash
+docker build --target buildenv -t mpspdz:buildenv .
+docker build --target mascot-party -t mpspdz:mascot-party --build-arg machine=mascot-party.x .
+```
+Once these are cached, rebuilding the final stage (e.g., compiling a different program) is much faster:
+```bash
+docker build \
+  --target program \
+  --tag mpspdz:mascot-party \
+  --build-arg machine=mascot-party.x \
+  --build-arg src=other_program \
+  .
+```
+
+This is especially useful when experimenting with different programs while reusing the same machine configuration.
 
 ## TBD
 ### Potential Optimizations
 - Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters
 - Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually. The current supported protocols are `mascot`, `cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`. Check MP-SPDZ docs for more info,
 - Check cheat sheet for other optimizations.
+- Experiment with homomoprhic encryption with use_ntl=1 (especially galois field protocols).
+- Semi honest protocols can use the special probabilistic truncation function (used for linreg, for example).
+- The --direct command line argument for fewer party protocols.
 
 #### Cross-tabulation (Sum)
 - Decide if it is better to either: 
