@@ -50,5 +50,6 @@ fi
 
 if [ "$copy" = true ]; then
     cp -r $generated_data_dir/$program_name/* $destination_dir/
+    scripts/compile.sh iprep.py party0 party1 # Compile to obtain MP-SPDZ input from csv
     echo "Copied <$program_name> data to $destination_dir."
 fi
