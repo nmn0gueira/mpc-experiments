@@ -71,7 +71,7 @@ services:
         gfp_mod_sz: 2 # only for gfp
         # Program arguments
         src: ${PROGRAM}
-        compile_options: ${COMPILE_OPTIONS_GLOBAL}
+        compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_DEALER}
       cache_from:
         - mpspdz:${MACHINE}
         - mpspdz:buildenv

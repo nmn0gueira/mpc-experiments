@@ -3,12 +3,15 @@ import numpy as np
 from operator import itemgetter
 
 BASE_DIR = "data/"
+PARTY_ALICE = "alice"
+PARTY_BOB= "bob"
+
 file_counters = {}
 
 def create_dirs(program):
-    dirname = "data/"+program
-    alice_dir = dirname + "/alice"
-    bob_dir = dirname + "/bob"
+    dirname = BASE_DIR + program + "/"
+    alice_dir = dirname + PARTY_ALICE
+    bob_dir = dirname + PARTY_BOB
     if not os.path.exists(alice_dir) or not os.path.exists(bob_dir):
         try:
             os.makedirs(alice_dir)
@@ -52,9 +55,7 @@ def gen_input(program, n, l, adjust_bit_length=True):
     A tuple of lists, where the first element is the list of numbers for party 1 and the second element is the list of numbers for party 2.
     '''
     if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+        raise ValueError("invalid bit length---this test can only handle up to 32 bits")
 
     bits = n
 
@@ -64,7 +65,7 @@ def gen_input(program, n, l, adjust_bit_length=True):
     list_a = get_rand_list(bits, l)
     list_b = get_rand_list(bits, l)
     
-    for party, data in zip(["alice", "bob"], [list_a, list_b]):
+    for party, data in zip([PARTY_ALICE, PARTY_BOB], [list_a, list_b]):
         filepath = get_data_filepath(program, party)
         write_to_file(filepath, data)
     
@@ -77,13 +78,10 @@ def gen_xtabs_input(n, l):
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
     output will depend on the function that is used to aggregate the values.
     '''
-    if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+    PROGRAM_NAME = 'xtabs'
 
-    categories_a, categories_b = gen_input('xtabs', 2, l, adjust_bit_length=False)
-    _, values_b = gen_input('xtabs', n, l)
+    categories_a, categories_b = gen_input(PROGRAM_NAME, 2, l, adjust_bit_length=False)
+    _, values_b = gen_input(PROGRAM_NAME, n, l)
 
     print_xtabs(categories_a, categories_b, values_b)
 
@@ -154,12 +152,9 @@ def gen_linreg_input(n, l):
     '''
     Model: y = beta_0 + beta_1 * x
     '''
-    if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+    PROGRAM_NAME = 'linreg'
 
-    features, labels = gen_input('linreg', n, l)
+    features, labels = gen_input(PROGRAM_NAME, n, l)
 
     print_linreg(features, labels)
 
@@ -189,12 +184,8 @@ def print_linreg(features, labels, scale=True):
 
 
 def gen_hist2d_input(n, l):
-    if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
-
-    values_a, values_b = gen_input('hist2d', n, l)
+    PROGRAM_NAME = 'hist2d'
+    values_a, values_b = gen_input(PROGRAM_NAME, n, l)
 
     print_hist2d(values_a, values_b)
 

@@ -1,37 +1,44 @@
 import argparse, random, os, math, errno
 import numpy as np
+import pandas as pd
 from operator import itemgetter
 
 BASE_DIR = "data/"
+PARTY_ALICE = "alice"
+PARTY_BOB= "bob"
 
 def create_dirs(program):
-    dirname = "data/"+program
-    if not os.path.exists(dirname):
+    dirname = BASE_DIR + program + "/"
+    alice_dir = dirname + PARTY_ALICE
+    bob_dir = dirname + PARTY_BOB
+    if not os.path.exists(alice_dir) or not os.path.exists(bob_dir):
         try:
-            os.makedirs(dirname)
+            os.makedirs(alice_dir)
+            os.makedirs(bob_dir)
         except OSError as e:
             if e.errno != errno.EEXIST: raise
 
 
-def get_data_filepath(program, n, party):
-    return f"{BASE_DIR}{program}/{n}.{party}.dat"
+def get_filepath(program, party):
+    return os.path.join(BASE_DIR, program, party, "data.csv")
 
 
-def write_to_file(filepath, data):
-    with open(filepath, 'w') as f:
-        for item in data:
-            f.write(f"{item}\n")
-
-
-# If necessary, change this to account for more than 1D arrays
 def get_rand_list(bits, l):
     return [random.getrandbits(bits) for _ in range(l)]
 
 
+def write_to_csv(program, party, *columns):
+    data = {}
+    for i, column in enumerate(columns):
+        data["col" + str(i)] = column
+
+    pd.DataFrame(data).to_csv(get_filepath(program, party), index=False)
+
+
 # Right now only does 1 column for each party, maybe change later or remove abstraction
-def gen_input(program, n, l, adjust_bit_length=True):
+def gen_input(n, l, adjust_bit_length=True):
     '''
-    General function for generating the actual values for the data used by the sample programs and handling I/O.
+    General function for generating the actual values for the data used by the sample programs.
 
     Parameters:
     n (int): The max number of bits for a number (not accounting for bit adjustment).
@@ -39,13 +46,11 @@ def gen_input(program, n, l, adjust_bit_length=True):
     adjust_bit_length (bool): If true, the bit length specified will be adjusted to mitigate operations with extremely large
     numbers which may lead to overflows and such. Should be False when working with smaller bit sizes.
 
-    Returns:
+    Returns:    
     A tuple of lists, where the first element is the list of numbers for party 1 and the second element is the list of numbers for party 2.
     '''
     if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+        raise ValueError("invalid bit length---this test can only handle up to 32 bits")
 
     bits = n
 
@@ -54,10 +59,6 @@ def gen_input(program, n, l, adjust_bit_length=True):
     
     list_a = get_rand_list(bits, l)
     list_b = get_rand_list(bits, l)
-    
-    for party, data in zip([1,2], [list_a, list_b]):
-        filepath = get_data_filepath(program, n, party)
-        write_to_file(filepath, data)
     
     return list_a, list_b
 
@@ -68,13 +69,13 @@ def gen_xtabs_input(n, l):
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
     output will depend on the function that is used to aggregate the values.
     '''
-    if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+    PROGRAM_NAME = 'xtabs'
 
-    categories_a, categories_b = gen_input('xtabs', 2, l, adjust_bit_length=False)
-    values_a, values_b = gen_input('xtabs', n, l)
+    categories_a, categories_b = gen_input(2, l, adjust_bit_length=False)
+    values_a, values_b = gen_input(n, l)
+
+    write_to_csv(PROGRAM_NAME, PARTY_ALICE, categories_a, values_a)
+    write_to_csv(PROGRAM_NAME, PARTY_BOB, categories_b, values_b)
 
     print_xtabs(categories_a, categories_b, values_b)
 
@@ -101,25 +102,56 @@ def print_xtabs(categories_a, categories_b, values):
         
     for k, v in frequencies.items():
         modes[k] = max(v.items(), key=itemgetter(1))[0]
+        frequencies[k] = dict(sorted(frequencies[k].items()))   # Also sort the frequencies for better readability
+        
     
-
+    print("Grouping by column in a and aggregating on value column b:")
     print(f"Expected values (sum): {sorted(sums.items())}\n")
     print(f"Expected values (mean): {sorted(averages.items())}\n")
+
+    print("-----------------------------------------------------------------------")
+    print("Grouping by column in a and b (no value column):")
     print(f"Expected values (mode): {sorted(modes.items())}\n")
     print(f"Expected values (frequencies): {sorted(frequencies.items())}\n")
 
+    print("-----------------------------------------------------------------------")
+
+    sums = {}
+    averages = {}
+    
+    for i in range(input_len):
+        sum_dict = sums.get(categories_a[i], {})
+        sum_dict[categories_b[i]] = sum_dict.get(categories_b[i], 0) + values[i]
+        sums[categories_a[i]] = sum_dict
+
+        average_dict = averages.get(categories_a[i], {})
+        average_dict[categories_b[i]] = average_dict.get(categories_b[i], 0) + values[i]
+        averages[categories_a[i]] = average_dict
+
+    # Divide by each time a category combo appeared
+    for key in averages:
+        for k in averages[key]:
+            averages[key][k] /= frequencies[key][k]
+    
+    for k, v in sums.items():
+        sums[k] = dict(sorted(sums[k].items()))
+        averages[k] = dict(sorted(averages[k].items())) 
+
+    print("Grouping by column in a and b and aggregating on value column b:")
+    print(f"Expected values (sum): {sorted(sums.items())}\n")
+    print(f"Expected values (avg): {sorted(averages.items())}\n")
 
 
 def gen_linreg_input(n, l):
     '''
     Model: y = beta_0 + beta_1 * x
     '''
-    if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+    PROGRAM_NAME = 'linreg'
+    
+    features, labels = gen_input(n, l)
 
-    features, labels = gen_input('linreg', n, l)
+    write_to_csv(PROGRAM_NAME, PARTY_ALICE, features)
+    write_to_csv(PROGRAM_NAME, PARTY_BOB, labels)
 
     print_linreg(features, labels)
 
@@ -149,12 +181,11 @@ def print_linreg(features, labels, scale=True):
 
 
 def gen_hist2d_input(n, l):
-    if (n > 32):
-        print ("invalid bit length---this test can only handle up to 32 bits")
-        print ("because we read in input using `stoi`")
-        return
+    PROGRAM_NAME = 'hist2d'
+    values_a, values_b = gen_input(n, l)
 
-    values_a, values_b = gen_input('hist2d', n, l)
+    write_to_csv(PROGRAM_NAME, PARTY_ALICE, values_a)
+    write_to_csv(PROGRAM_NAME, PARTY_BOB, values_b)
 
     print_hist2d(values_a, values_b)
 

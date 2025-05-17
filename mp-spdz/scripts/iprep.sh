@@ -49,6 +49,6 @@ if [ "$generate" = true ]; then
 fi
 
 if [ "$copy" = true ]; then
-    cp $generated_data_dir/$program_name/* $destination_dir/
+    cp -r $generated_data_dir/$program_name/* $destination_dir/
     echo "Copied <$program_name> data to $destination_dir."
 fi

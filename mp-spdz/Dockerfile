@@ -144,6 +144,6 @@ ARG compile_options=
 
 # Input must already exist in the data folder
 COPY /src/${src}.py .
-COPY /data/${src}/* Player-Data
+COPY /data/${src} Player-Data
 
 RUN python ${src}.py ${compile_options}
