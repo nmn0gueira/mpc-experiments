@@ -20,30 +20,27 @@ def create_dirs(program):
             if e.errno != errno.EEXIST: raise
 
 
-def get_data_filepath(program, party):
-    dir_path = os.path.join(BASE_DIR, program, party)
-    if dir_path not in file_counters:
-        file_counters[dir_path] = 1
-    else:
-        file_counters[dir_path] += 1
-    filename = f"{file_counters[dir_path]}.dat"
-    return os.path.join(dir_path, filename)
-
-
 def write_to_file(filepath, data):
     with open(filepath, 'w') as f:
         for item in data:
             f.write(f"{item}\n")
 
-# If necessary, change this to account for more than 1D arrays
+
+def write_files(program, party, *columns):
+    files_dir = os.path.join(BASE_DIR, program, party)
+
+    for i, column in enumerate(columns):
+        filepath = os.path.join(files_dir, i + ".dat")
+        write_to_file(filepath, column)
+    
+
 def get_rand_list(bits, l):
     return [random.getrandbits(bits) for _ in range(l)]
 
 
-# Right now only does 1 column for each party, maybe change later or remove abstraction
-def gen_input(program, n, l, adjust_bit_length=True):
+def gen_input(n, l, adjust_bit_length=True):
     '''
-    General function for generating the actual values for the data used by the sample programs and handling I/O.
+    General function for generating the actual values for the data used by the sample programs.
 
     Parameters:
     n (int): The max number of bits for a number (not accounting for bit adjustment).
@@ -51,7 +48,7 @@ def gen_input(program, n, l, adjust_bit_length=True):
     adjust_bit_length (bool): If true, the bit length specified will be adjusted to mitigate operations with extremely large
     numbers which may lead to overflows and such. Should be False when working with smaller bit sizes.
 
-    Returns:
+    Returns:    
     A tuple of lists, where the first element is the list of numbers for party 1 and the second element is the list of numbers for party 2.
     '''
     if (n > 32):
@@ -65,10 +62,6 @@ def gen_input(program, n, l, adjust_bit_length=True):
     list_a = get_rand_list(bits, l)
     list_b = get_rand_list(bits, l)
     
-    for party, data in zip([PARTY_ALICE, PARTY_BOB], [list_a, list_b]):
-        filepath = get_data_filepath(program, party)
-        write_to_file(filepath, data)
-    
     return list_a, list_b
 
 
@@ -78,12 +71,12 @@ def gen_xtabs_input(n, l):
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
     output will depend on the function that is used to aggregate the values.
     '''
-    PROGRAM_NAME = 'xtabs'
 
-    categories_a, categories_b = gen_input(PROGRAM_NAME, 2, l, adjust_bit_length=False)
-    _, values_b = gen_input(PROGRAM_NAME, n, l)
+    categories_a, categories_b = gen_input(2, l, adjust_bit_length=False)
+    values_a, values_b = gen_input(n, l)
 
     print_xtabs(categories_a, categories_b, values_b)
+    return (categories_a, categories_b), (values_a, values_b)
 
 
 def print_xtabs(categories_a, categories_b, values):
@@ -152,11 +145,11 @@ def gen_linreg_input(n, l):
     '''
     Model: y = beta_0 + beta_1 * x
     '''
-    PROGRAM_NAME = 'linreg'
-
-    features, labels = gen_input(PROGRAM_NAME, n, l)
+    
+    features, labels = gen_input(n, l)
 
     print_linreg(features, labels)
+    return (features,), (labels,)
 
 
 def print_linreg(features, labels, scale=True):
@@ -184,10 +177,10 @@ def print_linreg(features, labels, scale=True):
 
 
 def gen_hist2d_input(n, l):
-    PROGRAM_NAME = 'hist2d'
-    values_a, values_b = gen_input(PROGRAM_NAME, n, l)
+    values_a, values_b = gen_input(n, l)
 
     print_hist2d(values_a, values_b)
+    return (values_a,), (values_b,)
 
 
 def print_hist2d(values_a, values_b):
@@ -260,6 +253,9 @@ if __name__ == "__main__":
     program_function = PROGRAMS.get(args.e)
 
     if program_function:
-        program_function(args.n, args.l)
+        alice_data, bob_data = program_function(args.n, args.l)
+        write_files(args.e, PARTY_ALICE, *alice_data)
+        write_files(args.e, PARTY_BOB, *bob_data)
+
     else:
         print(f"Unknown program: {args.e}") # Should not happen

@@ -96,16 +96,22 @@ This is especially useful when experimenting with different programs while reusi
 - Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually. The current supported protocols are `mascot`, `cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`. Check MP-SPDZ docs for more info,
 - Check cheat sheet for other optimizations.
 - Experiment with homomoprhic encryption with use_ntl=1 (especially galois field protocols).
-- Semi honest protocols can use the special probabilistic truncation function (used for linreg, for example).
+- Semi honest protocols can use the special probabilistic truncation function (used for linreg, for example). Leads to faster multiplications.
 - The --direct command line argument for fewer party protocols.
 
-#### Cross-tabulation (Sum)
+#### Cross-Tabulation
+If possible, have it as one file that can be compiled into different named functions to avoid both performance loss and clutter.
+
+#### Compilation process
 - Decide if it is better to either: 
-	1. Use the first input of one party as the number of categories and the first input of another to be the input size and only compile once. 
+	1. Have arguments and input shapes be specified by public_input():
 		1. Pros: Only compiles once
-		2. Cons: Still requires specifying a max size when compiling.
-        3. Notes: If choosing this one have the groupby column and values column provider given in public input if possible.
-	2. Have both input size and number of categories as specified compiler args and compile each time it is needed
-		1. Pros: Input size is known at compile time
+		2. Cons: Still requires specifying a max size when compiling. May make the runtime slower.
+	2. Have input size and arguments (or only input size) known at compile time:
+		1. Pros: Makes runtime faster.
 		2. Cons: Compiling more than once
-        3. Notes: If choosing this one have the groupby column and values column provider given in the compiler args.
+
+#### Private Inputs
+Right now, the choice in how private inputs are handled is to either:
+1. The program to be ran itself has the input_tensor_via() function that is handled differently depending on the computing party. This makes local tests only feasible with docker compose
+2. Have an intermediary to generate binary or raw input from the input_tensor_via() function like iprep.py which will read the csv when compiled and generate the relevant player data. This data can then be used as input for other programs with input_from(). This facilitates local testing and the compiling by max size method (probably)

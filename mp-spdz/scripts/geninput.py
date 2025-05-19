@@ -19,23 +19,19 @@ def create_dirs(program):
             if e.errno != errno.EEXIST: raise
 
 
-def get_filepath(program, party):
-    return os.path.join(BASE_DIR, program, party, "data.csv")
-
-
 def get_rand_list(bits, l):
     return [random.getrandbits(bits) for _ in range(l)]
 
 
 def write_to_csv(program, party, *columns):
+    filepath = os.path.join(BASE_DIR, program, party, "data.csv")
     data = {}
     for i, column in enumerate(columns):
         data["col" + str(i)] = column
 
-    pd.DataFrame(data).to_csv(get_filepath(program, party), index=False)
+    pd.DataFrame(data).to_csv(filepath, index=False)
 
 
-# Right now only does 1 column for each party, maybe change later or remove abstraction
 def gen_input(n, l, adjust_bit_length=True):
     '''
     General function for generating the actual values for the data used by the sample programs.
@@ -69,15 +65,12 @@ def gen_xtabs_input(n, l):
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
     output will depend on the function that is used to aggregate the values.
     '''
-    PROGRAM_NAME = 'xtabs'
 
     categories_a, categories_b = gen_input(2, l, adjust_bit_length=False)
     values_a, values_b = gen_input(n, l)
 
-    write_to_csv(PROGRAM_NAME, PARTY_ALICE, categories_a, values_a)
-    write_to_csv(PROGRAM_NAME, PARTY_BOB, categories_b, values_b)
-
     print_xtabs(categories_a, categories_b, values_b)
+    return (categories_a, categories_b), (values_a, values_b)
 
 
 def print_xtabs(categories_a, categories_b, values):
@@ -146,14 +139,11 @@ def gen_linreg_input(n, l):
     '''
     Model: y = beta_0 + beta_1 * x
     '''
-    PROGRAM_NAME = 'linreg'
     
     features, labels = gen_input(n, l)
 
-    write_to_csv(PROGRAM_NAME, PARTY_ALICE, features)
-    write_to_csv(PROGRAM_NAME, PARTY_BOB, labels)
-
     print_linreg(features, labels)
+    return (features,), (labels,)
 
 
 def print_linreg(features, labels, scale=True):
@@ -181,13 +171,10 @@ def print_linreg(features, labels, scale=True):
 
 
 def gen_hist2d_input(n, l):
-    PROGRAM_NAME = 'hist2d'
     values_a, values_b = gen_input(n, l)
 
-    write_to_csv(PROGRAM_NAME, PARTY_ALICE, values_a)
-    write_to_csv(PROGRAM_NAME, PARTY_BOB, values_b)
-
     print_hist2d(values_a, values_b)
+    return (values_a,), (values_b,)
 
 
 def print_hist2d(values_a, values_b):
@@ -260,6 +247,9 @@ if __name__ == "__main__":
     program_function = PROGRAMS.get(args.e)
 
     if program_function:
-        program_function(args.n, args.l)
+        alice_data, bob_data = program_function(args.n, args.l)
+        write_to_csv(args.e, PARTY_ALICE, *alice_data)
+        write_to_csv(args.e, PARTY_BOB, *bob_data)
+
     else:
         print(f"Unknown program: {args.e}") # Should not happen
