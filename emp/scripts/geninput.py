@@ -6,7 +6,6 @@ BASE_DIR = "data/"
 PARTY_ALICE = "alice"
 PARTY_BOB= "bob"
 
-file_counters = {}
 
 def create_dirs(program):
     dirname = BASE_DIR + program + "/"
@@ -30,7 +29,7 @@ def write_files(program, party, *columns):
     files_dir = os.path.join(BASE_DIR, program, party)
 
     for i, column in enumerate(columns):
-        filepath = os.path.join(files_dir, i + ".dat")
+        filepath = os.path.join(files_dir, str(i) + ".dat")
         write_to_file(filepath, column)
     
 
@@ -76,7 +75,7 @@ def gen_xtabs_input(n, l):
     values_a, values_b = gen_input(n, l)
 
     print_xtabs(categories_a, categories_b, values_b)
-    return (categories_a, categories_b), (values_a, values_b)
+    return (categories_a, values_a), (categories_b, values_b)
 
 
 def print_xtabs(categories_a, categories_b, values):

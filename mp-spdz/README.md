@@ -98,6 +98,7 @@ This is especially useful when experimenting with different programs while reusi
 - Experiment with homomoprhic encryption with use_ntl=1 (especially galois field protocols).
 - Semi honest protocols can use the special probabilistic truncation function (used for linreg, for example). Leads to faster multiplications.
 - The --direct command line argument for fewer party protocols.
+- Configure multithreading as a compiler argument both for generating input and regular programs.
 
 #### Cross-Tabulation
 If possible, have it as one file that can be compiled into different named functions to avoid both performance loss and clutter.

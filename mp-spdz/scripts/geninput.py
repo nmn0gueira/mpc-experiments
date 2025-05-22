@@ -70,7 +70,7 @@ def gen_xtabs_input(n, l):
     values_a, values_b = gen_input(n, l)
 
     print_xtabs(categories_a, categories_b, values_b)
-    return (categories_a, categories_b), (values_a, values_b)
+    return (categories_a, values_a), (categories_b, values_b)
 
 
 def print_xtabs(categories_a, categories_b, values):
