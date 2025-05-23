@@ -1,4 +1,5 @@
-/.vscode/
-/MP-SPDZ/
-/data
-/alt
+.vscode/
+MP-SPDZ/
+data/
+alt/
+venv/

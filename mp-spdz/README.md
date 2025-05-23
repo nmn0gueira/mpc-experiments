@@ -4,8 +4,20 @@ MP-SPDZ implements a large number of secure multi-party computation (MPC) protoc
 The source-code is available on [Github](https://github.com/data61/MP-SPDZ) and it also provides [additional documentation online](https://mp-spdz.readthedocs.io/en/latest/).
 
 To test the sample programs, you will need to either: 
-1. Install MP-SPDZ using a binary or source distribution and run the programs locally (potentially using a dev container) - better for rapid testing.
-2. Use the root Dockerfile to run the programs in a container - better for testing in a distributed environment and for production while keeping the environment clean.
+1. Install MP-SPDZ using a binary or source distribution and run the programs locally (potentially using a dev container).
+2. Use the root Dockerfile to run the programs in a container,
+
+Regardless, you will need to install the required python dependencies. The usage of a virtual environment is recommended.
+1. (Optional) Create a virtual environment and activate it:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+2. Update pip and install the required dependencies:
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
 
 ## Binary or Source Distribution
 To setup the environment, you can either use the dev container with the provided Dockerfile or install the required dependencies (listed in the Dockefile) manually.
@@ -26,6 +38,7 @@ To run the programs, you will need to prepare program input. You can do this by 
 scripts/iprep.sh -g -c <program> [<geninput_args>]
 ```
 where `-g` and `-c` are optional flags to generate the data and copy it to `MP-SPDZ/Player-Data`, respectively, and `<program>` is the name of the program you want to setup the data for. The `<geninput_args>` are the arguments that you want to pass to the `geninput.py` script.
+
 
 #### Compiling
 To run a program, you will first need to compile it. You can do this by running the `compile.sh` script:

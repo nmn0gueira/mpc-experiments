@@ -23,5 +23,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 valgrind \
                 bc \
         && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --upgrade pip ipython numpy scipy pandas scikit_learn 
