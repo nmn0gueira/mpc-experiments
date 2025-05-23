@@ -1,3 +1,4 @@
-/.vscode/
-/build/
-/data/
+.vscode/
+build/
+data/
+venv/

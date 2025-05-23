@@ -2,11 +2,11 @@
 [EMP-toolkit](https://github.com/emp-toolkit) is a set of MPC frameworks based on garbled circuits written in C++ and used as libraries. This repository tests the [semi-honest implementation of Yao](https://github.com/emp-toolkit/emp-sh2pc) (`sh2pc`).
 
 ## Development
-Development was done through a development container using the repositories' `devcontainer.json` file along with its Dockerfile. This will allow you to develop in a consistent environment with all the necessary dependencies.
+Development was done through a development container using the repository's `devcontainer.json` file along with its Dockerfile. This will allow you to develop in a consistent environment with all the necessary dependencies.
 
-If you want to use the development container, you will need to have Docker installed on your machine and a code editor that supports devcontainers (e.g., Visual Studio Code).
+To use the development container, you will need Docker installed on your machine and a code editor that supports devcontainers (e.g., Visual Studio Code).
 
-Otherwise, you will need Ubuntu 24.04 and the required dependencies on your machine:
+Alternatively, you can set up the environment manually on Ubuntu 24.04 with the following dependencies:
 - software-properties-common
 - cmake
 - build-essential
@@ -24,11 +24,17 @@ make
 ```
 
 ## Usage
+### Additional Requirements
+The script used to generate input for the test programs requires a few Python packages. You can install these dependencies by running:
+```bash
+pip install -r requirements.txt
+```
+
 ### Generating input data
 To run the examples, you will need sample data. This data can be generated with the python script included in the repository. Usage of the script is as follows:
 
 ```bash
-python3 geninput.py -e <ex> -n <bitsize> -l <numrows>
+python3 scripts/geninput.py -e <ex> -n <bitsize> -l <numrows>
 ```
 
 The default for -n and -l is 32 and 10 respectively.

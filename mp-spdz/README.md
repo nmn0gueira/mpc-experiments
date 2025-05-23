@@ -7,13 +7,7 @@ To test the sample programs, you will need to either:
 1. Install MP-SPDZ using a binary or source distribution and run the programs locally (potentially using a dev container).
 2. Use the root Dockerfile to run the programs in a container,
 
-Regardless, you will need to install the required python dependencies. The usage of a virtual environment is recommended.
-1. (Optional) Create a virtual environment and activate it:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-2. Update pip and install the required dependencies:
+Regardless, you will need to install the required python dependencies. 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt

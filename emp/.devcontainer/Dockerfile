@@ -1,9 +1,14 @@
 FROM ubuntu:latest
 
-RUN apt update \
-	&& apt install -y software-properties-common \
-	&& apt install -y cmake git build-essential libssl-dev \
-	&& apt install -y gdb
+RUN apt update && apt install -y \
+		software-properties-common \
+		cmake \
+		git \
+		build-essential \
+		libssl-dev \
+		gdb \
+		python3-venv \
+	&& rm -rf /var/lib/apt/lists/*
 
 # emp-tool
 WORKDIR /root
