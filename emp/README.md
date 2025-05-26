@@ -24,12 +24,6 @@ make
 ```
 
 ## Usage
-### Additional Requirements
-The script used to generate input for the test programs requires a few Python packages. You can install these dependencies by running:
-```bash
-pip install -r requirements.txt
-```
-
 ### Generating input data
 To run the examples, you will need sample data. This data can be generated with the python script included in the repository. Usage of the script is as follows:
 
