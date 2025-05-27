@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <dirent.h>
+#include <cmath>
 #include <unistd.h>
 using namespace emp;
 using namespace std;
@@ -507,6 +508,162 @@ void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 	delete[] group_by;
 }
 
+void test_std1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN, int ddof=0) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
+	Float *values = new Float[sample_size];
+	
+	Float sums[cat_len];
+	Float counts [cat_len];
+	Float averages[cat_len];
+	Float variances[cat_len];
+	Integer categories[cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_f(party, values, inputs, value_col);
+
+	for (int i = 0; i < cat_len; ++i) {
+		sums[i] = Float();
+		counts[i] = Float();
+		averages[i] = Float();
+		variances[i] = Float();
+		categories[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	Float zero = Float();
+	Float one = Float(1, PUBLIC);
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < cat_len; ++j) {
+			Bit eqcat = group_by[i].equal(categories[j]);
+			Float result_sum = zero.If(eqcat, values[i]);
+			Float result_count = zero.If(eqcat, one);
+		
+			sums[j] = sums[j] + result_sum;
+			counts[j] = counts[j] + result_count;
+		}	
+	}
+	// Calculate averages
+	for (int i = 0; i < cat_len; ++i) {
+		averages[i] = (sums[i] / counts[i]);
+	}
+
+	// Calculate variances
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < cat_len; ++j) {
+			Bit eqcat = group_by[i].equal(categories[j]);
+			Float result = zero.If(eqcat, values[i] - averages[j]);
+
+			variances[j] = variances[j] + result.sqr();
+		}	
+	}
+
+	Float ddof_secure = ddof == 0 ? zero : one;
+	for (int i = 0; i < cat_len; ++i) {
+		variances[i] = variances[i] / (counts[i] - ddof_secure);
+	}
+
+    for (int i = 0; i < cat_len; ++i) {
+		float std = sqrt(variances[i].reveal<double>());
+        cout << "Standard Deviation (" << i << "): " << std << endl;
+	}
+
+	delete[] group_by;
+	delete[] values;
+}
+
+
+void test_std2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN, int ddof=0) {
+	int sample_size = inputs[0].size();
+	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
+	Float *values = new Float[sample_size];
+	
+	Float sums[first_cat_len][second_cat_len];
+	Float counts[first_cat_len][second_cat_len];
+	Float averages[first_cat_len][second_cat_len];
+	Float variances[first_cat_len][second_cat_len];
+	Integer categories_1[first_cat_len];
+	Integer categories_2[second_cat_len];
+
+	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
+	initialize_values_f(party, values, inputs, value_col);
+
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
+			sums[i][j] = Float();
+			counts[i][j] = Float();
+			averages[i][j] = Float();
+			variances[i][j] = Float();
+		}
+	}
+
+	for (int i = 0; i < first_cat_len; ++i) {
+		categories_1[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	for (int i = 0; i < second_cat_len; ++i) {
+		categories_2[i] = Integer(BITSIZE, i, PUBLIC);
+	}
+
+	Float zero = Float();
+	Float one = Float(1, PUBLIC);
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < first_cat_len; ++j) {
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
+			
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
+				Bit match = eq_first_cat & eq_second_cat;
+				
+				Float result_sum = zero.If(match, values[i]);
+				Float result_count = zero.If(match, one);
+
+				sums[j][k] = sums[j][k] + result_sum;
+				counts[j][k] = counts[j][k] + result_count;	
+			}	
+		}	
+	}
+
+	// Calculate averages
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
+			averages[i][j] = (sums[i][j] / counts[i][j]);
+		}
+	}
+
+	for (int i = 0; i < sample_size; ++i) {
+		for (int j = 0; j < first_cat_len; ++j) {
+			Bit eq_first_cat = group_by[i].equal(categories_1[j]);
+			
+			for (int k = 0; k < second_cat_len; ++k) {
+				Bit eq_second_cat = group_by[sample_size + i].equal(categories_2[k]);
+				Bit match = eq_first_cat & eq_second_cat;
+
+				Float result = zero.If(match, values[i] - averages[j][k]);
+
+				variances[j][k] = variances[j][k] + result.sqr();
+			}	
+		}	
+	}
+
+	Float ddof_secure = ddof == 0 ? zero : one;
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
+			variances[i][j] = variances[i][j] / (counts[i][j] - ddof_secure);
+		}
+	}
+	
+	for (int i = 0; i < first_cat_len; ++i) {
+		for (int j = 0; j < second_cat_len; ++j) {
+			float std = sqrt(variances[i][j].reveal<double>());
+        	cout << "Standard Deviation (" << i << ", " << j << "): " << std << endl;
+		}
+	}
+
+	delete[] group_by;
+	delete[] values;
+}
+
+
 
 void xtabs_1(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
 	switch (aggregation) {
@@ -524,8 +681,7 @@ void xtabs_1(int party, vector<vector<string>> inputs, char aggregation, char* a
 			cout << "Frequency counts are not available when grouping by one column only" << endl;
 			break;
 		case 'd':
-			cout << "Standard Deviation" << endl;
-			cout << "NOT IMPLEMENTED" << endl;
+			utils::time_it(test_std1, party, inputs, agg_cols, value_col, CAT_LEN, 0);
 			break;
 		default:
 			cout << "Invalid aggregation type" << endl;
@@ -550,8 +706,7 @@ void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* a
 			utils::time_it(test_freq, party, inputs, agg_cols, CAT_LEN, CAT_LEN);
 			break;
 		case 'd':
-			cout << "Standard Deviation" << endl;
-			cout << "NOT IMPLEMENTED" << endl;
+			utils::time_it(test_std2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN, 0);
 			break;
 		default:
 			cout << "Invalid aggregation type" << endl;

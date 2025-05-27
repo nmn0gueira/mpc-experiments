@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from operator import itemgetter
 
+np.set_printoptions(legacy='1.25')
+
 BASE_DIR = "data/"
 PARTY_ALICE = "alice"
 PARTY_BOB= "bob"
@@ -74,33 +76,62 @@ def gen_xtabs_input(n, l):
 
 
 def print_xtabs(categories_a, categories_b, values):
-    # Expected values by function
+    input_len = len(categories_a)
+
+    # Sums and averages
     sums = {}
     averages = {}
+    counts = {k : categories_a.count(k) for k in set(categories_a)}
+
+    # Frequency counts
     frequencies = {}    # absolute frequencies
     modes = {}
-    input_len = len(categories_a)
+
+    # Std
+    std_values = {}
+    std0 = {}   # ddof=0
+    std1 = {}   # ddof=1
 
     for i in range(input_len):
         sums[categories_a[i]] = sums.get(categories_a[i], 0) + values[i]
-
-        averages[categories_a[i]] = averages.get(categories_a[i], 0) + values[i]
+        std_values[categories_a[i]] = std_values.get(categories_a[i], [])
+        std_values[categories_a[i]].append(values[i])
 
         frequency_dict = frequencies.get(categories_a[i], {})
         frequency_dict[categories_b[i]] = frequency_dict.get(categories_b[i], 0) + 1
         frequencies[categories_a[i]] = frequency_dict
 
-    for key in averages:
-        averages[key] = averages[key] / categories_a.count(key)
+    # Calculate averages
+    for key in sums:
+        averages[key] = sums[key] / counts[key]
+    
+    for key in std_values:
+        #d2_sum = 0
+        #for value in std_values[key]:
+        #    d2 = abs(value - averages[key]) ** 2
+        #    d2_sum += d2
+        #var0 = d2_sum / counts[key]
+        #var1 = d2_sum / (counts[key] - 1)
+        #std0[key] = var0**0.5
+        #std1[key] = var1**0.5
+        #print(std0[key])
+        #print(np.std(std_values[key], mean=averages[key]))
+        #print(std1[key])
+        #print(np.std(std_values[key], mean=averages[key], ddof=1))
+        std0[key] = np.std(std_values[key], mean=averages[key])
+        std1[key] = np.std(std_values[key], mean=averages[key], ddof=1) if len(std_values[key]) > 1 else None
+
         
     for k, v in frequencies.items():
         modes[k] = max(v.items(), key=itemgetter(1))[0]
         frequencies[k] = dict(sorted(frequencies[k].items()))   # Also sort the frequencies for better readability
-        
+
     
     print("Grouping by column in a and aggregating on value column b:")
     print(f"Expected values (sum): {sorted(sums.items())}\n")
-    print(f"Expected values (mean): {sorted(averages.items())}\n")
+    print(f"Expected values (avg): {sorted(averages.items())}\n")
+    print(f"Expected values (std0): {sorted(std0.items())}\n")
+    print(f"Expected values (std1): {sorted(std1.items())}\n")
 
     print("-----------------------------------------------------------------------")
     print("Grouping by column in a and b (no value column):")
@@ -111,28 +142,46 @@ def print_xtabs(categories_a, categories_b, values):
 
     sums = {}
     averages = {}
+
+    std_values = {}
+    std0 = {}   # ddof=0
+    std1 = {}   # ddof=1
     
     for i in range(input_len):
         sum_dict = sums.get(categories_a[i], {})
         sum_dict[categories_b[i]] = sum_dict.get(categories_b[i], 0) + values[i]
         sums[categories_a[i]] = sum_dict
 
-        average_dict = averages.get(categories_a[i], {})
-        average_dict[categories_b[i]] = average_dict.get(categories_b[i], 0) + values[i]
-        averages[categories_a[i]] = average_dict
+        value_dict = std_values.get(categories_a[i], {})
+        value_dict[categories_b[i]] = value_dict.get(categories_b[i], [])
+        value_dict[categories_b[i]].append(values[i])
+        std_values[categories_a[i]] = value_dict
 
     # Divide by each time a category combo appeared
-    for key in averages:
-        for k in averages[key]:
-            averages[key][k] /= frequencies[key][k]
+    for key in sums:
+        averages[key] = {}  # Create dictionary
+        for k in sums[key]:
+            averages[key][k] = sums[key][k] / frequencies[key][k]
+
+
+    for key in std_values:
+        std0[key] = {}
+        std1[key] = {}
+        for k in std_values[key]:
+            std0[key][k] = np.std(std_values[key][k], mean=averages[key][k])
+            std1[key][k] = np.std(std_values[key][k], mean=averages[key][k], ddof=1) if len(std_values[key][k]) > 1 else None
     
     for k, v in sums.items():
         sums[k] = dict(sorted(sums[k].items()))
         averages[k] = dict(sorted(averages[k].items())) 
+        std0[k] = dict(sorted(std0[k].items()))
+        std1[k] = dict(sorted(std1[k].items()))
 
     print("Grouping by column in a and b and aggregating on value column b:")
     print(f"Expected values (sum): {sorted(sums.items())}\n")
     print(f"Expected values (avg): {sorted(averages.items())}\n")
+    print(f"Expected values (std0): {sorted(std0.items())}\n")
+    print(f"Expected values (std1): {sorted(std1.items())}\n")
 
 
 def gen_linreg_input(n, l):

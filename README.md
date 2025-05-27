@@ -26,7 +26,7 @@ Below is a general overview of the implemented functions. For detailed informati
 
 ### Program Extensions
 - `xtabs`: 
-  - Add support for more aggregations, such as the median or the standard deviation.
+  - Add support for more aggregations.
 - `linreg`: 
   - Extend it to support multiple target variables (multivariate regression).
   - Extend it to support polynomial regression.

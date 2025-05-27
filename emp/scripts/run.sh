@@ -13,10 +13,10 @@ MILLIONAIRE_INPUT_A=70
 MILLIONAIRE_INPUT_B=20
 XTABS_INPUT_A=$DATA_DIR/xtabs/alice
 XTABS_INPUT_B=$DATA_DIR/xtabs/bob
-LINREG_INPUT_A=$DATA_DIR/linreg/alice/1.dat
-LINREG_INPUT_B=$DATA_DIR/linreg/bob/1.dat
-HIST2D_INPUT_A=$DATA_DIR/hist2d/alice/1.dat
-HIST2D_INPUT_B=$DATA_DIR/hist2d/bob/1.dat
+LINREG_INPUT_A=$DATA_DIR/linreg/alice/0.dat
+LINREG_INPUT_B=$DATA_DIR/linreg/bob/0.dat
+HIST2D_INPUT_A=$DATA_DIR/hist2d/alice/0.dat
+HIST2D_INPUT_B=$DATA_DIR/hist2d/bob/0.dat
 
 # Additonal parameters
 XTABS_GROUPBY_ONE=a0
@@ -38,7 +38,7 @@ usage() {
     echo ""
     echo "Programs:"
     echo "  millionaire                     Secure comparison"
-    echo "  xtabs <aggregation> <groupby>   Cross-tabulation ((s)um | (a)vg | (m)ode | (f)req) and number of group by columns (1 or 2)"
+    echo "  xtabs <aggregation> <groupby>   Cross-tabulation ((s)um | (a)vg | (m)ode | (f)req | st(d)ev) and number of group by columns (1 or 2)"
     echo "  linreg                          Linear regression"
     echo "  hist2d                          2D histogram"
 }
@@ -91,7 +91,7 @@ case $program in
         aggregation=$2
         groupby=$3
         if [ -z "$aggregation" ] || [ -z "$groupby" ]; then
-            echo "xtabs requires an aggregation type ((s)um | (a)vg | (m)ode | (f)req) and number of group by columns (1 or 2)"
+            echo "xtabs requires an aggregation type ((s)um | (a)vg | (m)ode | (f)req | st(d)ev) and number of group by columns (1 or 2)"
             exit 1
         fi
         if [ "$groupby" = "1" ]; then
