@@ -6,7 +6,7 @@ import pandas as pd
 
 compiler = Compiler()
 
-
+# Inputting as sint is probably universal to work for all programs (LOOK FURTHER INTO THAT)
 @compiler.register_function('iprep')
 def main():
     if 'party0' in compiler.prog.args:

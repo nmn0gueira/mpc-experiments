@@ -142,8 +142,11 @@ FROM machine AS program
 ARG src=
 ARG compile_options=
 
-# Input must already exist in the data folder
-COPY /src/${src}.py .
+# Generate binary player input (input must already exist in the data folder)
 COPY /data/${src} Player-Data
+COPY /src/iprep.py .
+RUN python iprep.py party0 party1
 
+# Compile the wanted program
+COPY /src/${src}.py .
 RUN python ${src}.py ${compile_options}

@@ -117,3 +117,4 @@ If possible, have it as one file that can be compiled into different named funct
 Right now, the choice in how private inputs are handled is to either:
 1. The program to be ran itself has the input_tensor_via() function that is handled differently depending on the computing party. This makes local tests only feasible with docker compose
 2. Have an intermediary to generate binary or raw input from the input_tensor_via() function like iprep.py which will read the csv when compiled and generate the relevant player data. This data can then be used as input for other programs with input_from(). This facilitates local testing and the compiling by max size method (probably)
+After testing both, they seem to perform similarly that any performance difference is negligible.
