@@ -22,7 +22,7 @@ const int BITSIZE = 32;
 const int CAT_LEN = 4;	// For now, the number of categories is fixed to 4 (0, 1, 2, 3)
 
 
-void initialize_groupby_inputs(int party, Integer *group_by, vector<vector<string>> inputs, char* agg_cols) {
+void initialize_groupby_inputs(int party, Integer *group_by, const vector<vector<string>>& inputs, char* agg_cols) {
 	int sample_size = inputs[0].size();
 	int agg_cols_len = strlen(agg_cols);	// Number of characters in the string (NOT THE ACTUAL NUMBER OF COLUMNS)
 	const int STEP = 2;	// Each column is represented by two characters (e.g. a0, b1, etc.)
@@ -53,7 +53,7 @@ void initialize_groupby_inputs(int party, Integer *group_by, vector<vector<strin
 	}
 }
 
-void initialize_values_i(int party, Integer *values, vector<vector<string>> inputs, char* value_col) {
+void initialize_values_i(int party, Integer *values, const vector<vector<string>>& inputs, char* value_col) {
 	int sample_size = inputs[0].size();
 	int input_sequence_num = value_col[1] - '0';	// Convert char to int
 	// Count the number of aggregation columns and the number of columns for Alice and Bob
@@ -75,7 +75,7 @@ void initialize_values_i(int party, Integer *values, vector<vector<string>> inpu
 	}
 }
 
-void initialize_values_f(int party, Float *values, vector<vector<string>> inputs, char* value_col) {
+void initialize_values_f(int party, Float *values, const vector<vector<string>>& inputs, char* value_col) {
 	int sample_size = inputs[0].size();
 	int input_sequence_num = value_col[1] - '0';	// Convert char to int
 	// Count the number of aggregation columns and the number of columns for Alice and Bob
@@ -97,7 +97,7 @@ void initialize_values_f(int party, Float *values, vector<vector<string>> inputs
 	}
 }
 
-void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+void test_sum1(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
 	Integer *values = new Integer[sample_size];
@@ -136,7 +136,7 @@ void test_sum1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 /**
  * Same as the test_sum1 function, but now we are grouping by two categorical variables.
  */
-void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_sum2(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size * 2];	//  May contain inputs of both parties
 	Integer *values = new Integer[sample_size];
@@ -192,7 +192,7 @@ void test_sum2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
  * For the average function, we need to use emp::Float types instead of emp::Integer types for the final results if we want precision in the 
  * averages (otherwise we can use just integer division ig).
  */
-void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+void test_average1(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
 	Float *values = new Float[sample_size];
@@ -234,7 +234,7 @@ void test_average1(int party, vector<vector<string>> inputs, char* agg_cols, cha
 
 
 
-void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_average2(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 	Float *values = new Float[sample_size];
@@ -292,7 +292,7 @@ void test_average2(int party, vector<vector<string>> inputs, char* agg_cols, cha
 }
 
 
-void test_average1_fast(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+void test_average1_fast(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
 	Integer *values = new Integer[sample_size];
@@ -333,7 +333,7 @@ void test_average1_fast(int party, vector<vector<string>> inputs, char* agg_cols
 }
 
 
-void test_average2_fast(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_average2_fast(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 	Integer *values = new Integer[sample_size];
@@ -392,7 +392,7 @@ void test_average2_fast(int party, vector<vector<string>> inputs, char* agg_cols
 }
 
 
-void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_mode(int party, const vector<vector<string>>& inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 
@@ -461,7 +461,7 @@ void test_mode(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 }
 
 
-void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_freq(int party, const vector<vector<string>>& inputs, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 
@@ -508,7 +508,7 @@ void test_freq(int party, vector<vector<string>> inputs, char* agg_cols, int fir
 	delete[] group_by;
 }
 
-void test_std1(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN, int ddof=0) {
+void test_std1(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int cat_len=CAT_LEN, int ddof=0) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size];		//  May contain inputs of both parties
 	Float *values = new Float[sample_size];
@@ -572,7 +572,7 @@ void test_std1(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 }
 
 
-void test_std2(int party, vector<vector<string>> inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN, int ddof=0) {
+void test_std2(int party, const vector<vector<string>>& inputs, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN, int ddof=0) {
 	int sample_size = inputs[0].size();
 	Integer *group_by = new Integer[sample_size * 2];		//  May contain inputs of both parties
 	Float *values = new Float[sample_size];
@@ -665,7 +665,7 @@ void test_std2(int party, vector<vector<string>> inputs, char* agg_cols, char* v
 
 
 
-void xtabs_1(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
+void xtabs_1(int party, const vector<vector<string>>& inputs, char aggregation, char* agg_cols, char* value_col) {
 	switch (aggregation) {
 		case 's':
 			utils::time_it(test_sum1, party, inputs, agg_cols, value_col, CAT_LEN);
@@ -690,7 +690,7 @@ void xtabs_1(int party, vector<vector<string>> inputs, char aggregation, char* a
 
 }
 
-void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
+void xtabs_2(int party, const vector<vector<string>>& inputs, char aggregation, char* agg_cols, char* value_col) {
 	switch (aggregation) {
 		case 's':
 			utils::time_it(test_sum2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
@@ -715,7 +715,7 @@ void xtabs_2(int party, vector<vector<string>> inputs, char aggregation, char* a
 }
 
 // Right now this requires setting a value column for mode and frequency counts even though they are not used
-void test_xtabs(int party, vector<vector<string>> inputs, char aggregation, char* agg_cols, char* value_col) {
+void test_xtabs(int party, const vector<vector<string>>& inputs, char aggregation, char* agg_cols, char* value_col) {
 	int num_agg_cols = strlen(agg_cols) / 2;	// Number of aggregation columns (e.g. a0b1 -> 2)
 
 	if (num_agg_cols == 1) {
