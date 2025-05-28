@@ -47,20 +47,21 @@ build_command() {
     local first_command=$1
     local second_command=$2
     
-    if [ "$alice" = true ] && [ "$bob" = true ]; then
+    if { [ "$alice" = true ] && [ "$bob" = true ]; } || { [ "$alice" = false ] && [ "$bob" = false ]; } then
         echo "Running both Alice and Bob"
-        $first_command & $second_command > /dev/null &
+        bob_output=$(mktemp)
+        $second_command | tail -n 1 > "$bob_output" & # This is to store the last line of Bob's output (data sent) and print it as well
+        $first_command
         wait
+        echo "$(cat "$bob_output")"
+        rm "$bob_output"
+        
     elif [ "$alice" = true ]; then
         echo "Running Alice"
         $first_command
     elif [ "$bob" = true ]; then
         echo "Running Bob"
         $second_command
-    else
-        echo "Running both Alice and Bob (default)"
-        $first_command & $second_command > /dev/null &
-        wait
     fi
 }
 

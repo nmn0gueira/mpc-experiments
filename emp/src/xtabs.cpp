@@ -790,6 +790,7 @@ int main(int argc, char **argv) {
 	} else {
 		// Could not open directory
 		perror("Failed to open directory");
+		finalize_semi_honest();
 		delete io;
 		return EXIT_FAILURE;
 	}
@@ -798,6 +799,7 @@ int main(int argc, char **argv) {
 	for (size_t i = 1; i < input_matrix.size(); ++i) {
 		if (input_matrix[i].size() != input_matrix[0].size()) {
 			cerr << "Error: All files must have the same number of elements." << endl;
+			finalize_semi_honest();
 			delete io;
 			return 1;
 		}
@@ -807,6 +809,11 @@ int main(int argc, char **argv) {
 	cout << "Number of elements in each file: " << input_matrix[0].size() << endl;
 	test_xtabs(party, input_matrix, aggregation[0], agg_cols, value_col);
 
+	const char* party_str = party == ALICE ? "Alice" : "Bob";
+	cout << "Data sent (" << party_str << "): " << io->counter / (1024.0 * 1024) << " MB" << endl;
+
+	finalize_semi_honest();
 	delete io;
+
     return 0;
 }

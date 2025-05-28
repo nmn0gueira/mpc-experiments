@@ -29,8 +29,12 @@ int main(int argc, char** argv) {
 	NetIO * io = new NetIO(ip, port);
 	setup_semi_honest(io, party);
 	test_millionaire(party, num);
-	cout << CircuitExecution::circ_exec->num_and()<<endl;
+
+	const char* party_str = party == ALICE ? "Alice" : "Bob";
+	cout << "Data sent (" << party_str << "): " << io->counter / (1024.0 * 1024) << " MB" << endl;
+
 	finalize_semi_honest();
 	delete io;
+	
 	return 0;
 }

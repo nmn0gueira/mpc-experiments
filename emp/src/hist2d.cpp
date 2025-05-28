@@ -172,6 +172,7 @@ int main(int argc, char **argv) {
 	ifstream infile(filename);
 	if (!infile.is_open()) {
         cerr << "Failed to open file: " << filename << endl;
+		finalize_semi_honest();
 		delete io;
 		return 1;
     }
@@ -184,8 +185,14 @@ int main(int argc, char **argv) {
 	infile.close();
 
 	cout << "Number of elements: " << inputs.size() << endl;
+
 	utils::time_it(test_hist2d, inputs.data(), inputs.size(), NUM_BINS_X, NUM_BINS_Y);
-	
+
+	const char* party_str = party == ALICE ? "Alice" : "Bob";
+	cout << "Data sent (" << party_str << "): " << io->counter / (1024.0 * 1024) << " MB" << endl;
+
+	finalize_semi_honest();
 	delete io;
+	
     return 0;
 }
