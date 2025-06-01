@@ -1,22 +1,10 @@
-#Testing macro
-macro (add_test_executable_with_lib _name libs)
+macro (add_example_executable _name)
 	add_executable(${_name} "${_name}.cpp")
-	target_link_libraries(${_name} ${EMP-OT_LIBRARIES})
+	#target_compile_options(${_name} PRIVATE ${C_OPT_FLAGS})	# Removed due to slight performance downgrade
+	target_link_libraries(${_name} ${EMP-SH2PC_LIBRARIES})
 endmacro()
 
-macro (add_test_case _name)
-	add_test_executable_with_lib(${_name} "")
-  	add_test(NAME ${_name} COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_name}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/")
-endmacro()
-
-macro (add_test_case_with_run _name)
-	add_test_executable_with_lib(${_name} "")
-	add_test(NAME ${_name} COMMAND "./run" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_name}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/")
-
-endmacro()
-
-# Test cases
-add_test_case_with_run(millionaire)
-add_test_case_with_run(hist2d)
-add_test_case_with_run(xtabs)
-add_test_case_with_run(linreg)
+add_example_executable(millionaire)
+add_example_executable(hist2d)
+add_example_executable(xtabs)
+add_example_executable(linreg)
