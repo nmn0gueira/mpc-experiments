@@ -1,5 +1,5 @@
 #include "emp-sh2pc/emp-sh2pc.h"
-#include "utils/timing_utils.hpp"
+#include "../utils.hpp"
 #include <iostream>
 #include <unistd.h>
 using namespace emp;
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
 	if(party == BOB) ip = argv[3];
 	char* filename = argv[argc - 1];
 	
-	NetIO * io = new NetIO(ip, port);
+	HighSpeedNetIO * io = new HighSpeedNetIO(ip, port, port + 1);
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
 	
@@ -188,10 +188,9 @@ int main(int argc, char **argv) {
 
 	utils::time_it(test_hist2d, inputs.data(), inputs.size(), NUM_BINS_X, NUM_BINS_Y);
 
-	const char* party_str = party == ALICE ? "Alice" : "Bob";
-	cout << "Data sent (" << party_str << "): " << io->counter / (1024.0 * 1024) << " MB" << endl;
-
 	finalize_semi_honest();
+
+	utils::print_io_stats(*io, party);
 	delete io;
 	
     return 0;

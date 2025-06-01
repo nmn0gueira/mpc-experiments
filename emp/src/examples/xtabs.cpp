@@ -9,7 +9,8 @@
  */
 
 #include "emp-sh2pc/emp-sh2pc.h"
-#include "utils/timing_utils.hpp"
+#include "../utils.hpp"
+
 
 #include <iostream>
 #include <dirent.h>
@@ -753,7 +754,7 @@ int main(int argc, char **argv) {
 	char* value_col = argv[argc - 2];
 	char* input_dir = argv[argc - 1];
 	
-	NetIO * io = new NetIO(ip, port);
+	HighSpeedNetIO * io = new HighSpeedNetIO(ip, port, port + 1);
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
 
@@ -809,10 +810,8 @@ int main(int argc, char **argv) {
 	cout << "Number of elements in each file: " << input_matrix[0].size() << endl;
 	test_xtabs(party, input_matrix, aggregation[0], agg_cols, value_col);
 
-	const char* party_str = party == ALICE ? "Alice" : "Bob";
-	cout << "Data sent (" << party_str << "): " << io->counter / (1024.0 * 1024) << " MB" << endl;
-
 	finalize_semi_honest();
+	utils::print_io_stats(*io, party);
 	delete io;
 
     return 0;

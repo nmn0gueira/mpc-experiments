@@ -1,9 +1,12 @@
-#ifndef TIMING_UTILS_HPP
-#define TIMING_UTILS_HPP
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
+#include "emp-sh2pc/emp-sh2pc.h"
 #include <chrono>
 #include <iostream>
 #include <utility>
+using namespace std;
+
 
 namespace utils {
 
@@ -24,6 +27,18 @@ namespace utils {
 
         std::cout << "---------------------------------------------" << std::endl;
         std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
+    }
+
+    /**
+     * @brief Prints the information about communication
+     */
+    void print_io_stats(const HighSpeedNetIO& io, int party) {
+        double sent_mb = (double) io.schannel->counter / (1024 * 1024.0);
+        double recv_mb = (double) io.rchannel->counter / (1024 * 1024.0);
+        
+        const char* party_str = party == ALICE ? "Alice" : "Bob";
+	    cout << "Data sent (" << party_str << "): " << sent_mb << " MB" << endl;
+        cout << "Data sent (global): " << sent_mb + recv_mb << " MB" << endl;
     }
 
 }

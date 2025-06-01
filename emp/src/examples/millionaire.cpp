@@ -1,4 +1,6 @@
 #include "emp-sh2pc/emp-sh2pc.h"
+#include "../utils.hpp"
+
 using namespace emp;
 using namespace std;
 
@@ -26,15 +28,14 @@ int main(int argc, char** argv) {
 	
 	int num = atoi(argv[argc - 1]);		// number is the last argument
 
-	NetIO * io = new NetIO(ip, port);
+	HighSpeedNetIO * io = new HighSpeedNetIO(ip, port, port + 1);
 	setup_semi_honest(io, party);
 	test_millionaire(party, num);
 
-	const char* party_str = party == ALICE ? "Alice" : "Bob";
-	cout << "Data sent (" << party_str << "): " << io->counter / (1024.0 * 1024) << " MB" << endl;
-
 	finalize_semi_honest();
+
+	utils::print_io_stats(*io, party);
+
 	delete io;
-	
 	return 0;
 }
