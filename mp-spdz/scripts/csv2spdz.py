@@ -7,7 +7,7 @@ import pandas as pd
 compiler = Compiler()
 
 # Inputting as sint is probably universal to work for all programs (LOOK FURTHER INTO THAT)
-@compiler.register_function('iprep')
+@compiler.register_function('csv2spdz')
 def main():
     if 'party0' in compiler.prog.args:
         df = pd.read_csv('Player-Data/alice/data.csv').values

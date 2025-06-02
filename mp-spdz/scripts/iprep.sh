@@ -4,7 +4,8 @@ set -e
 
 generate=false
 copy=false
-destination_dir="MP-SPDZ/Player-Data"
+MP_SPDZ_PATH="MP-SPDZ"
+destination_dir="$MP_SPDZ_PATH/Player-Data"
 generated_data_dir="data/"
 
 usage() {
@@ -50,6 +51,8 @@ fi
 
 if [ "$copy" = true ]; then
     cp -r $generated_data_dir/$program_name/* $destination_dir/
-    scripts/compile.sh iprep.py party0 party1 # Compile to obtain MP-SPDZ input from csv
+    cp scripts/csv2spdz.py $MP_SPDZ_PATH
+    cd $MP_SPDZ_PATH
+    python csv2spdz.py party0 party1 > /dev/null # Compile to obtain MP-SPDZ input from csv (compile.sh python script starts at directory src/examples)
     echo "Copied <$program_name> data to $destination_dir."
 fi
