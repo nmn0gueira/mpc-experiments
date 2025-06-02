@@ -37,10 +37,10 @@ usage() {
     echo "  -a -b             Run both Alice and Bob (default if no options are given)"
     echo ""
     echo "Programs:"
-    echo "  millionaire                     Secure comparison"
-    echo "  xtabs <aggregation> <groupby>   Cross-tabulation ((s)um | (a)vg | (m)ode | (f)req | st(d)ev) and number of group by columns (1 or 2)"
+    echo "  millionaire                     Secure comparison of two numbers"
+    echo "  xtabs <aggregation> <groupby>   Cross-tabulation [(s)um | (a)vg | | a(v)g_fast | (m)ode | (f)req | st(d)ev ; number of group by columns (1 or 2)]"
     echo "  linreg                          Linear regression"
-    echo "  hist2d                          2D histogram"
+    echo "  hist2d <mode>                   2D histogram [(i)nteger or (f)loat usage for binning]"
 }
 
 build_command() {
@@ -87,7 +87,7 @@ case $program in
         aggregation=$2
         groupby=$3
         if [ -z "$aggregation" ] || [ -z "$groupby" ]; then
-            echo "xtabs requires an aggregation type ((s)um | (a)vg | (m)ode | (f)req | st(d)ev) and number of group by columns (1 or 2)"
+            echo "xtabs requires an aggregation type ((s)um | (a)vg | | a(v)g_fast | (m)ode | (f)req | st(d)ev) and number of group by columns (1 or 2)"
             exit 1
         fi
         if [ "$groupby" = "1" ]; then
@@ -106,8 +106,13 @@ case $program in
         bob_command="./build/bin/linreg $PARTY_B $PORT $address $LINREG_INPUT_B"
         ;;
     "hist2d" )
-        alice_command="./build/bin/hist2d $PARTY_A $PORT $HIST2D_INPUT_A"
-        bob_command="./build/bin/hist2d $PARTY_B $PORT $address $HIST2D_INPUT_B"
+        mode=$2
+        if [ -z "$mode" ]; then
+            echo "hist2d requires choosing a mode for how the type used for the defined bins ((i)nt or (f)loat)"
+            exit 1
+        fi
+        alice_command="./build/bin/hist2d $PARTY_A $PORT $mode $HIST2D_INPUT_A"
+        bob_command="./build/bin/hist2d $PARTY_B $PORT $address $mode $HIST2D_INPUT_B"
         ;;
     * )
         echo "Unknown program: $program"

@@ -54,7 +54,7 @@ void initialize_groupby_inputs(int party, Integer *group_by, const vector<vector
 	}
 }
 
-void initialize_values_i(int party, Integer *values, const vector<vector<string>>& inputs, char* value_col) {
+void initialize_values(int party, Integer *values, const vector<vector<string>>& inputs, char* value_col) {
 	int sample_size = inputs[0].size();
 	int input_sequence_num = value_col[1] - '0';	// Convert char to int
 	// Count the number of aggregation columns and the number of columns for Alice and Bob
@@ -76,7 +76,7 @@ void initialize_values_i(int party, Integer *values, const vector<vector<string>
 	}
 }
 
-void initialize_values_f(int party, Float *values, const vector<vector<string>>& inputs, char* value_col) {
+void initialize_values(int party, Float *values, const vector<vector<string>>& inputs, char* value_col) {
 	int sample_size = inputs[0].size();
 	int input_sequence_num = value_col[1] - '0';	// Convert char to int
 	// Count the number of aggregation columns and the number of columns for Alice and Bob
@@ -106,7 +106,7 @@ void test_sum1(int party, const vector<vector<string>>& inputs, char* agg_cols, 
 	Integer sums[cat_len];	// If CAT_LEN was not fixed, each dimension would be initialized to the respective number of categories
 	Integer categories[cat_len];
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_i(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Integer(BITSIZE, 0, PUBLIC);
@@ -147,7 +147,7 @@ void test_sum2(int party, const vector<vector<string>>& inputs, char* agg_cols, 
 	Integer categories_2[second_cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_i(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j) {
@@ -203,7 +203,7 @@ void test_average1(int party, const vector<vector<string>>& inputs, char* agg_co
 	Integer categories[cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_f(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Float();
@@ -246,7 +246,7 @@ void test_average2(int party, const vector<vector<string>>& inputs, char* agg_co
 	Integer categories_2[second_cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_f(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j) {
@@ -303,7 +303,7 @@ void test_average1_fast(int party, const vector<vector<string>>& inputs, char* a
 	Integer categories[cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_i(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Integer(BITSIZE, 0, PUBLIC);
@@ -345,7 +345,7 @@ void test_average2_fast(int party, const vector<vector<string>>& inputs, char* a
 	Integer categories_2[second_cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_i(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j) {
@@ -521,7 +521,7 @@ void test_std1(int party, const vector<vector<string>>& inputs, char* agg_cols, 
 	Integer categories[cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_f(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < cat_len; ++i) {
 		sums[i] = Float();
@@ -586,7 +586,7 @@ void test_std2(int party, const vector<vector<string>>& inputs, char* agg_cols, 
 	Integer categories_2[second_cat_len];
 
 	initialize_groupby_inputs(party, group_by, inputs, agg_cols);
-	initialize_values_f(party, values, inputs, value_col);
+	initialize_values(party, values, inputs, value_col);
 
 	for (int i = 0; i < first_cat_len; ++i) {
 		for (int j = 0; j < second_cat_len; ++j) {
@@ -672,7 +672,9 @@ void xtabs_1(int party, const vector<vector<string>>& inputs, char aggregation, 
 			utils::time_it(test_sum1, party, inputs, agg_cols, value_col, CAT_LEN);
 			break;
 		case 'a':
-			//utils::time_it(test_average1, party, inputs, agg_cols, value_col, CAT_LEN);
+			utils::time_it(test_average1, party, inputs, agg_cols, value_col, CAT_LEN);
+			break;
+		case 'v':
 			utils::time_it(test_average1_fast, party, inputs, agg_cols, value_col, CAT_LEN);
 			break;
 		case 'm':
@@ -697,7 +699,9 @@ void xtabs_2(int party, const vector<vector<string>>& inputs, char aggregation, 
 			utils::time_it(test_sum2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 			break;
 		case 'a':
-			//utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			utils::time_it(test_average2, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			break;
+		case 'v':
 			utils::time_it(test_average2_fast, party, inputs, agg_cols, value_col, CAT_LEN, CAT_LEN);
 			break;
 		case 'm':
