@@ -61,11 +61,9 @@ RUN pip install --upgrade pip ipython numpy scipy pandas scikit_learn
 
 WORKDIR /usr/src/
 
-#ARG checkout="94c4e2791528b036b981941a418e541a6a243962"
-
 RUN git clone https://github.com/data61/MP-SPDZ.git
 WORKDIR /usr/src/MP-SPDZ
-#RUN git checkout ${checkout}
+RUN git checkout v0.4.1
 
 ARG arch=
 ARG cxx=clang++-11
@@ -142,10 +140,10 @@ FROM machine AS program
 ARG src=
 ARG compile_options=
 
-# Generate binary player input (input must already exist in the data folder)
+# Convert csv data to mp-spdz readable input (csv must already exist in the data folder)
 COPY /data/${src} Player-Data
-COPY /src/iprep.py .
-RUN python iprep.py party0 party1
+COPY /scripts/csv2spdz.py .
+RUN python csv2spdz.py party0 party1
 
 # Compile the wanted program
 COPY /src/${src}.py .
