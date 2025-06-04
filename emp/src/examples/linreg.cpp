@@ -1,6 +1,6 @@
 /**
  * @file linreg.cpp
- * @brief This prgogram is used for providing a benchmark of a simple implementation of linear regression in garbled circuits. Due to the extreme inefficiency of linear regression in garbled 
+ * @brief This prgogram is used for providing a benchmark of a simple linear regression in garbled circuits. Due to the extreme inefficiency of linear regression in garbled 
  * circuits, this program implements a much more limited version of linear regression which provides functionality for only one feature and one label in addition to very basic preprocessing.
  */
 #include "emp-sh2pc/emp-sh2pc.h"
@@ -12,31 +12,6 @@ using namespace emp;
 using namespace std;
 
 const int BITSIZE = 32;
-
-/**
- * Standard scaler function for scaling the input data.
- */
-void standard_scaler(Float * a, int size) {
-	Float mean = Float();
-	Float std = Float();
-	Float count(size, PUBLIC);
-	for (int i = 0; i < size; ++i)
-		mean = mean + a[i];
-
-	mean = mean / count;
-
-	for (int i = 0; i < size; ++i)
-		std = std + (a[i] - mean).sqr();
-
-	std = (std/count).sqrt();
-
-	for (int i = 0; i < size; ++i)
-		a[i] = (a[i] - mean) / std;
-
-	cout << "Mean: " << mean.reveal<double>() << endl;
-	cout << "Std: " << std.reveal<double>() << endl;
-}
-
 
 /**
  * Single variable linear regression. Assumes Alice has the feature column and Bob has the labels.
@@ -52,12 +27,11 @@ void test_linreg(string inputs[], int input_len, bool scale=true) {
 
 	for (int i = 0; i < input_len; ++i) {
 		a[i] = Float(stoi(inputs[i]), ALICE);
-		b[i] = Float(stoi(inputs[i]), BOB);
 	}
 
-	if (scale)
-		standard_scaler(a, input_len);
-
+	for (int i = 0; i < input_len; ++i) {
+		b[i] = Float(stoi(inputs[i]), BOB);
+	}
 
 	for (int i = 0; i < input_len; ++i) {
 		sum_x = sum_x + a[i];
