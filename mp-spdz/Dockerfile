@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 automake \
                 build-essential \
                 clang-11 \
-		        cmake \
+		cmake \
                 git \
                 libboost-dev \
                 libboost-thread-dev \
@@ -57,7 +57,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 valgrind \
         && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip ipython numpy scipy pandas scikit_learn
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 WORKDIR /usr/src/
 

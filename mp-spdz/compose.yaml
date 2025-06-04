@@ -19,7 +19,7 @@ services:
         machine: ${MACHINE}-party.x
         gfp_mod_sz: 2 # only for gfp
         # Program arguments
-        src: ${PROGRAM}
+        src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_ALICE}
       cache_from:
         - mpspdz:${MACHINE}
@@ -43,7 +43,7 @@ services:
         machine: ${MACHINE}-party.x
         gfp_mod_sz: 2 # only for gfp
         # Program arguments
-        src: ${PROGRAM}
+        src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_BOB}
       cache_from:
         - mpspdz:${MACHINE}
@@ -70,7 +70,7 @@ services:
         machine: ${MACHINE}-party.x
         gfp_mod_sz: 2 # only for gfp
         # Program arguments
-        src: ${PROGRAM}
+        src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_DEALER}
       cache_from:
         - mpspdz:${MACHINE}

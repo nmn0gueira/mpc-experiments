@@ -184,25 +184,27 @@ def print_xtabs(categories_a, categories_b, values):
     print(f"Expected values (std1): {sorted(std1.items())}\n")
 
 
-def gen_linreg_input(n, l):
+def gen_linreg_input(n, l, scale=True):
     '''
     Model: y = beta_0 + beta_1 * x
     '''
     
     features, labels = gen_input(n, l)
+    if scale:
+        features = get_scaled(features)
 
     print_linreg(features, labels)
     return (features,), (labels,)
 
 
-def print_linreg(features, labels, scale=True):
-    if (scale):
-        mean = np.mean(features)
-        std = np.std(features)
-        features = (features - mean) / std
-        print(f"Expected mean: {mean}")
-        print(f"Expected standard deviation: {std}")
- 
+def get_scaled(features):
+    mean = np.mean(features)
+    std = np.std(features)
+    scaled_features = (features - mean) / std
+    return scaled_features
+
+
+def print_linreg(features, labels):
     sum_x = np.sum(features)
     sum_y = np.sum(labels)
     sum_xy = sum(x*y for x,y in zip(features,labels))
@@ -214,6 +216,10 @@ def print_linreg(features, labels, scale=True):
 
     squared_errors = sum((y_true - (beta_0 + beta_1 * x)) ** 2 for x, y_true in zip(features, labels))
 
+    #print(f"sum x: {sum_x}")
+    #print(f"sum y: {sum_y}")
+    #print(f"sum xy: {sum_xy}")
+    #print(f"sum x^2: {sum_x2}")
     print(f"Expected intercept (beta_0): {beta_0}")
     print(f"Expected slope (beta_1): {beta_1}")
     print(f"Expected training error of model (MSE): {squared_errors / len(features)}")
