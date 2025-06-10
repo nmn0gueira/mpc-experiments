@@ -18,6 +18,7 @@ services:
         # Machine arguments
         machine: ${MACHINE}-party.x
         gfp_mod_sz: 2 # only for gfp
+        ring_size: 256 # only for ring protocols
         # Program arguments
         src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_ALICE}
@@ -42,6 +43,7 @@ services:
         # Machine arguments
         machine: ${MACHINE}-party.x
         gfp_mod_sz: 2 # only for gfp
+        ring_size: 256 # only for ring protocols
         # Program arguments
         src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_BOB}
@@ -69,6 +71,7 @@ services:
         # Machine arguments
         machine: ${MACHINE}-party.x
         gfp_mod_sz: 2 # only for gfp
+        ring_size: 256 # only for ring protocols
         # Program arguments
         src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_DEALER}

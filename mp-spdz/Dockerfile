@@ -109,8 +109,10 @@ FROM buildenv AS machine
 ARG machine="mascot-party.x"
 
 ARG gfp_mod_sz=2
+ARG ring_size=256
 
 RUN echo "MOD = -DGFP_MOD_SZ=${gfp_mod_sz}" >> CONFIG.mine
+RUN echo "MOD = -DRING_SIZE=${ring_size}" >> CONFIG.mine
 
 RUN make clean && make ${machine} && cp ${machine} /usr/local/bin/
 
