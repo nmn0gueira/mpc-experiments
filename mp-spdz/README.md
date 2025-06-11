@@ -57,18 +57,19 @@ The supplied Dockerfile is a modified version of the one from the MP-SPDZ reposi
 Build the image for a specific computation machine (e.g., mascot-party.x) and program (e.g., linreg):
 ```bash
 docker build \ 
---target program \
---tag mpspdz:mascot-party \
+--tag mpspdz:mascot-linreg \
 --build-arg machine=mascot-party.x \
 --build-arg src=linreg . \
 .
 ```
+> Note: You can also use the included `docker-build.sh` to simplify Docker builds. Run `scripts/docker-build.sh --help` for options.
+
 Then, run the container:
 ```bash
-docker run --rm -it mpspdz:mascot-party ./Scripts/mascot.sh linreg
+docker run --rm -it mpspdz:mascot-linreg ./Scripts/mascot.sh linreg
 ```
 
-Alternatively, use Docker Compose to build and run with a similar setup. First, make sure the `compose.yaml` is configured appropriately (by exporting the necessary variables). Then:
+Alternatively, you can use Docker Compose to build and run with a similar setup. First, make sure the `compose.yaml` is configured appropriately (by exporting the necessary variables). Then:
 ```bash
 docker compose up
 ```
@@ -77,9 +78,10 @@ docker compose up
 The Dockerfile defines multiple build stages, such as `buildenv`, `machine`-specific stages, and `program`. You can pre-build intermediate targets to speed up future builds:
 ```bash
 docker build --target buildenv -t mpspdz:buildenv .
-docker build --target mascot-party -t mpspdz:mascot-party --build-arg machine=mascot-party.x .
+docker build --target machine -t mpspdz:mascot-party --build-arg machine=mascot-party.x .
 ```
-Once these are cached, rebuilding the final stage (e.g., compiling a different program) is much faster:
+
+Once these are cached, rebuilding the final stage (i.e. compiling a different program) is much faster:
 ```bash
 docker build \
   --target program \

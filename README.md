@@ -15,6 +15,7 @@ Below is a general overview of the implemented functions. For detailed informati
     - average
     - frequency count
     - mode (does not reveal frequency counts)
+    - stdev
 - `linreg`: Linear regression. Computes regression coefficients after applying standard scaling to the (numerical) input data.
 - `hist2d`: 2D histogram (density heatmap). Bins 2D points into a grid and counts the number of points per bin.
 
@@ -25,17 +26,15 @@ Below is a general overview of the implemented functions. For detailed informati
 - `nan_handling`: A function to handle NaN values in a dataset.
 
 ### Program Extensions
-- `xtabs`: 
-  - Add support for more aggregations.
+- `xtabs`:
+  - Add more aggregations (e.g., median).
 - `linreg`: 
-  - Extend it to support multiple target variables (multivariate regression).
   - Extend it to support polynomial regression.
   - Add support for categorical variables (e.g., one-hot encoding).
   - Implement regularization techniques like Lasso or Ridge regression.
-- `hist2d`: 
-  - Extend it to `histnd`, an N-dimensional histogram. 
-  - Implement other aggregations for it, such as the mean.
-  - Allow users to define number of bins and, potentially, the range of the bins.
+- `hist2d`:
+  - Allow performing aggregations on the binned values (requires an additional value column).
+  - Allow defining number of bins and binning strategy.
 
 ### Frameworks
 Support for other frameworks may be added in the future. In particular, the following frameworks are of interest (at the moment):

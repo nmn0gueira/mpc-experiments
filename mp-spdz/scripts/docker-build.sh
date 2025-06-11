@@ -30,7 +30,7 @@ Usage: $0 [--target <target>] [options]
 Build Targets:
   --target buildenv              Build base environment
   --target machine               Build machine-specific image (requires --machine)
-  --target program               Build complete program (default, requires --machine, --src, --compile_options)
+  --target program               Build complete program (default, requires --machine, --src)
 
 Dockerfile Arguments:
   --arch <arch>                   Architecture (default: native)
@@ -39,10 +39,10 @@ Dockerfile Arguments:
   --prep_dir <dir>                Prep directory (default: Player-Data)
   --ssl_dir <dir>                 SSL directory (default: Player-Data)
   --cryptoplayers <num>           Crypto players (default: 3)
-  --machine <machine>             Target machine architecture
+  --machine <machine>             Target machine
   --gfp_mod_sz <size>             GF(p) mod size (default: 2)
   --ring_size <size>              Ring size (default: 256)
-  --src <src>                     Source code version or label
+  --src <src>                     Source file name (excluding ".py")
   --compile_options <options>     Compilation options
 
 Other Options:
@@ -97,8 +97,8 @@ validate_args() {
             BUILD_ARGS[machine]="${BUILD_ARGS[machine]}-party.x"
             ;;
         program)
-            if [[ -z "${BUILD_ARGS[machine]}" || -z "${BUILD_ARGS[src]}" || -z "${BUILD_ARGS[compile_options]}" ]]; then
-                echo "Error: --machine, --src, and --compile_options are required for building program stage."
+            if [[ -z "${BUILD_ARGS[machine]}" || -z "${BUILD_ARGS[src]}" ]]; then
+                echo "Error: --machine and --src are required for building program stage."
                 usage
             fi
             IMAGE_TAG="${BUILD_ARGS[machine]}-${BUILD_ARGS[src]}"
