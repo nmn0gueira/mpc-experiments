@@ -1,33 +1,37 @@
 from Compiler.types import Array, Matrix, sfix
 from Compiler.library import print_ln, for_range_opt, for_range, for_range_parallel
 from Compiler.compilerLib import Compiler
+from Compiler import ml
+#import torch.nn as nn
 
 
 usage = "usage: %prog [options] [args]"
 compiler = Compiler(usage=usage)
-compiler.parser.add_option("--rows", dest="rows")
-#compiler.parser.add_option("--columns", dest="columns")
+
+# Options for defining the input matrices and their dimensions
+compiler.parser.add_option("--rows", dest="rows", type=int, help="Number of rows for the input matrices)")
+
+# Options for defining X and y (The feature columns will all be taken as input at once and the label column must be the last column of the respective party)
+compiler.parser.add_option("--features", dest="features", type=str, help="Feature columns (e.g a3b1 for Alice's first 3 columns and Bob's first column")
+compiler.parser.add_option("--label", dest="label", type=str, help="Label column (e.g b for Bob's column)")
+compiler.parser.add_option("--test_size", dest="test_size", default=0.2, type=float, help="Proportion of the dataset to include in the test split (default: 0.2)")
+
+# SGD options
+compiler.parser.add_option("--n_epochs", dest="n_epochs", default=100, type=int, help="Number of epochs for SGD linear regression (default: 100)")
+compiler.parser.add_option("--batch_size", dest="batch_size", default=1, type=int, help="Batch size for SGD linear regression (default: 1)")
+compiler.parser.add_option("--learning_rate", dest="learning_rate", default=0.01, type=float, help="Learning rate for SGD linear regression (default: 0.01)")
+
 compiler.parse_args()
+
 if not compiler.options.rows:
     compiler.parser.error("--rows required")
-#if not compiler.options.columns:
-#    compiler.parser.error("--columns required")
 
 
 def simple_linreg():
     """
     Simple linreg where Alice holds the feature column and Bob holds the target column.
-
-    Parameters:
-    scale : bool
-        Whether to scale the feature column (mean and std normalization). Ideally, inputs are already standardized to avoid 
     """
-    
-    compiler.prog.use_trunc_pr = True
-    sfix.set_precision(16, 47) # 32 integer bits (31 + sign bit (not counted)), 16 fractional bits. Requires compiling with -R 192
-    #sfix.set_precision(16, 79)  # 64 integer bits (63 + sign bit (not counted)), 16 fractional bits. Requires compiling with -R 256
-
-    max_rows = int(compiler.options.rows)
+    max_rows = compiler.options.rows
 
     alice = Array(max_rows, sfix)
     bob = Array(max_rows, sfix)
@@ -61,22 +65,129 @@ def simple_linreg():
     print_ln("Slope (beta_1): %s", beta_1.reveal())
 
 
+def get_num_features():
+    num_features = 0
+    for i in range(1, len(compiler.options.features), 2):
+        num_features += int(compiler.options.features[i])
+    return num_features
+
+# To optimize memory usage, the features arguemnt should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
+# storing an additional matrix for alice's and bob's values
+def sgd_linreg():
+    if not compiler.options.features or not compiler.options.label:
+        compiler.parser.error("--features and --label required")
+
+    rows_train = int(compiler.options.rows * (1 - compiler.options.test_size))
+    rows_test = int(compiler.options.rows * compiler.options.test_size)
+
+    num_features = get_num_features()
+
+    X_train = Matrix(rows_train, num_features, sfix)
+    X_test = Matrix(rows_test, num_features, sfix)
+
+    current_column = 0
+    for i in range(0, len(compiler.options.features), 2):
+        num_cols = int(compiler.options.features[i + 1])
+
+        if compiler.options.features[i] == 'a':
+            for _ in range(num_cols):
+                @for_range_opt(rows_train)
+                def _(i):
+                    X_train[i][current_column] = sfix.get_input_from(0)
+
+                @for_range_opt(rows_test)
+                def _(i):
+                    X_test[i][current_column] = sfix.get_input_from(0)
+                
+                current_column += 1
+        
+        elif compiler.options.features[i] == 'b':
+            for _ in range(num_cols):
+                @for_range_opt(rows_train)
+                def _(i):
+                    X_train[i][current_column] = sfix.get_input_from(1)
+
+                @for_range_opt(rows_test)
+                def _(i):
+                    X_test[i][current_column] = sfix.get_input_from(1)
+
+                current_column += 1
+
+
+    y_train = Array(rows_train, sfix)
+    y_test = Array(rows_test, sfix)
+
+    label_holder = 0 if compiler.options.label == 'a' else 1
+
+    @for_range_opt(rows_train)
+    def _(i):
+        y_train[i] = sfix.get_input_from(label_holder)
+
+    @for_range_opt(rows_test)
+    def _(i):
+        y_test[i] = sfix.get_input_from(label_holder)
+    
+
+    """ for i in range(X_train.shape[0]):
+        for j in range(X_train.shape[1]):
+            print_ln("X_train[%s][%s]: %s", i, j, X_train[i][j].reveal())
+
+    for i in range(X_test.shape[0]):
+        for j in range(X_test.shape[1]):
+            print_ln("X_test[%s][%s]: %s", i, j, X_test[i][j].reveal()) """
+    
+    
+    linear = ml.SGDLinear(compiler.options.n_epochs, compiler.options.batch_size)
+    linear.fit(X_train, y_train)
+
+    print_ln('Model Weights: %s', linear.opt.layers[0].W[:].reveal())
+    print_ln('Model Bias: %s', linear.opt.layers[0].b.reveal())
+    print_ln('diff %s', (linear.predict(X_test) - y_test).reveal())
+
+
+    # Something like this that uses proper torch layers might be needed for implementing polyfeats and multivariate linreg
+    # (https://mp-spdz.readthedocs.io/en/latest/machine-learning.html#pytorch-interface)
+    # (https://mp-spdz.readthedocs.io/en/latest/machine-learning.html#keras-interface)
+    """ net = nn.Sequential(
+    nn.Flatten(),
+    nn.Linear(28 * 28, 128),
+    nn.ReLU(),
+    nn.Linear(128, 128),
+    nn.ReLU(),
+    nn.Linear(128, 10)
+    )
+
+    ml.set_n_threads(int(program.args[2]))
+
+    layers = ml.layers_from_torch(net, training_samples.shape, 128)
+
+    optimizer = ml.SGD(layers)
+    optimizer.fit(
+    training_samples,
+    training_labels,
+    epochs=int(program.args[1]),
+    batch_size=128,
+    validation_data=(test_samples, test_labels),
+    program=program
+    ) """
+
+
+
 @compiler.register_function('linreg')
 def main():
+    compiler.prog.use_trunc_pr = True
+
     if "simple" in compiler.prog.args:
         print("-----------------------------------------")
         print("Compiling for simple linear regression")
         print("-----------------------------------------")
         simple_linreg()
-    elif "sgd" in compiler.prog.args:
-        print("-----------------------------------------")
-        print("Compiling for linear regression using SGD")
-        print("SGD linear regression is not implemented yet.")
-        print("-----------------------------------------")
-    else:
-        print("-----------------------------------------")
-        print("Compiling for regular linear regression")
-        print("-----------------------------------------")
+        return
+
+    print("-----------------------------------------")
+    print("Compiling for linear regression using SGD")
+    print("-----------------------------------------")
+    sgd_linreg()
     
 
 if __name__ == "__main__":

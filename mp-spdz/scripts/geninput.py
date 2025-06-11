@@ -2,6 +2,7 @@ import argparse, random, os, math, errno
 import numpy as np
 import pandas as pd
 from operator import itemgetter
+from sklearn.datasets import make_regression
 
 np.set_printoptions(legacy='1.25')
 
@@ -28,8 +29,11 @@ def get_rand_list(bits, l):
 def write_to_csv(program, party, *columns):
     filepath = os.path.join(BASE_DIR, program, party, "data.csv")
     data = {}
-    for i, column in enumerate(columns):
-        data["col" + str(i)] = column
+    if isinstance(columns[0], (list, np.ndarray)):
+        for i, column in enumerate(columns):
+            data["col" + str(i)] = column
+    else:
+        data["col0"] = columns
 
     pd.DataFrame(data).to_csv(filepath, index=False)
 
@@ -61,7 +65,7 @@ def gen_input(n, l, adjust_bit_length=True):
     return list_a, list_b
 
 
-def gen_xtabs_input(n, l):
+def gen_xtabs_input(l):
     '''
     Generates input for xtabs program. This input functions as if both parties already have their input ordered. One party has the (typically 
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
@@ -69,7 +73,7 @@ def gen_xtabs_input(n, l):
     '''
 
     categories_a, categories_b = gen_input(2, l, adjust_bit_length=False)
-    values_a, values_b = gen_input(n, l)
+    values_a, values_b = gen_input(32, l)
 
     print_xtabs(categories_a, categories_b, values_b)
     return (categories_a, values_a), (categories_b, values_b)
@@ -184,27 +188,38 @@ def print_xtabs(categories_a, categories_b, values):
     print(f"Expected values (std1): {sorted(std1.items())}\n")
 
 
-def gen_linreg_input(n, l, scale=True):
-    '''
-    Model: y = beta_0 + beta_1 * x
-    '''
-    
-    features, labels = gen_input(n, l)
-    if scale:
-        features = get_scaled(features)
+def gen_linreg_input(l, scale_features=True, normalize_labels=True):
+    X, y = make_regression(n_samples=l, n_features=2)
 
-    print_linreg(features, labels)
-    return (features,), (labels,)
+    if scale_features:
+        X = get_scaled(X)
+
+    if normalize_labels:
+        y = get_normalized(y)
+
+    print_simple_linreg(X[:, 0], y)
+    #print_regular_linreg(X, y)    # The features are transposed only to match the expected input format for linear regression
+    #print_sgd_linreg(features, labels)
+    return X.transpose(), y
 
 
 def get_scaled(features):
-    mean = np.mean(features)
-    std = np.std(features)
+    mean = np.mean(features, axis=0)
+    std = np.std(features, axis=0)
     scaled_features = (features - mean) / std
     return scaled_features
 
 
-def print_linreg(features, labels):
+def get_normalized(labels):
+    max_label = np.max(labels, axis=0)
+    normalized_labels = labels / max_label
+    return normalized_labels
+
+
+def print_simple_linreg(features, labels):
+    '''
+    Model: y = beta_0 + beta_1 * x
+    '''
     sum_x = np.sum(features)
     sum_y = np.sum(labels)
     sum_xy = sum(x*y for x,y in zip(features,labels))
@@ -225,8 +240,36 @@ def print_linreg(features, labels):
     print(f"Expected training error of model (MSE): {squared_errors / len(features)}")
 
 
-def gen_hist2d_input(n, l):
-    values_a, values_b = gen_input(n, l)
+def print_regular_linreg(X, Y):
+    intercept = np.ones((X.shape[0], 1))
+    X = np.hstack((intercept, X))  # Add intercept term as the first column
+    Xt = np.transpose(X)
+    XtX = Xt @ X
+    #print("XtX:\n", XtX)
+    XtX_inv = np.linalg.inv(XtX)
+    #print("XtX_inv:\n", XtX_inv)
+    XtY = Xt @ Y
+    w = XtX_inv @ XtY
+    print("Expected weights (w):\n", w)
+
+
+def print_sgd_linreg(features, labels):
+    '''
+    Prints the expected output of the SGD linear regression program.
+    The features are a list of lists, where each inner list is a feature column.
+    The labels are a list of lists, where each inner list is a label column.
+    '''
+    num_features = len(features)
+    num_labels = len(labels)
+
+    print("Expected weights (w):")
+    for i in range(num_features):
+        for j in range(num_labels):
+            print(f"Feature {i}, Label {j}: w = 0.0")  # Placeholder for actual weights
+
+
+def gen_hist2d_input(l):
+    values_a, values_b = gen_input(32, l)
 
     print_hist2d(values_a, values_b)
     return (values_a,), (values_b,)
@@ -281,9 +324,7 @@ def print_hist2d(values_a, values_b):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='generates input for emp-toolkit sample programs')
-    parser.add_argument('-n', default=32, type=int, 
-        help="integer bit length")
+        description='generates input for mp-spdz sample programs')
     parser.add_argument('-l', default=10, type=int, 
         help="array length")
     
@@ -302,7 +343,7 @@ if __name__ == "__main__":
     program_function = PROGRAMS.get(args.e)
 
     if program_function:
-        alice_data, bob_data = program_function(args.n, args.l)
+        alice_data, bob_data = program_function(args.l)
         write_to_csv(args.e, PARTY_ALICE, *alice_data)
         write_to_csv(args.e, PARTY_BOB, *bob_data)
 
