@@ -35,7 +35,7 @@ def csv2spdz(path, party, split, binary):
     
     if split:
         df_train, df_test = train_test_split(df, test_size=compiler.options.test_size, random_state=compiler.options.random_state) # Use shuffle=False if debugging
-        # Store each column as a separate tensor (this helps optimize memory when performing linear regression)
+        # Store each column as a separate tensor (this helps optimize memory when performing linear regression, for example)
         for col in df_train.columns:
             sint.input_tensor_via(party, df_train[col].values, binary=binary)
             sint.input_tensor_via(party, df_test[col].values, binary=binary)
@@ -48,7 +48,7 @@ def csv2spdz(path, party, split, binary):
 
 @compiler.register_function('csv2spdz')
 def main():
-    split = 'linreg' in compiler.prog.args  # kind of a hack but works for now as linreg is the only program that needs data split and input in a specific way
+    split = 'split' in compiler.prog.args
     binary = 'binary' in compiler.prog.args
     if 'party0' in compiler.prog.args:
         csv2spdz('Player-Data/alice/data.csv', 0, split, binary)

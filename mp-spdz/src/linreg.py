@@ -12,7 +12,7 @@ compiler = Compiler(usage=usage)
 compiler.parser.add_option("--rows", dest="rows", type=int, help="Number of rows for the input matrices)")
 
 # Options for defining X and y (The feature columns will all be taken as input at once and the label column must be the last column of the respective party)
-compiler.parser.add_option("--features", dest="features", type=str, help="Feature columns (e.g a3b1 for Alice's first 3 columns and Bob's first column")
+compiler.parser.add_option("--features", dest="features", type=str, help="Feature columns (e.g a3b1 for Alice's first 3 columns and Bob's first column)")
 compiler.parser.add_option("--label", dest="label", type=str, help="Label column (e.g b for Bob's column)")
 compiler.parser.add_option("--test_size", dest="test_size", default=0.2, type=float, help="Proportion of the dataset to include in the test split (default: 0.2)")
 
@@ -71,7 +71,7 @@ def get_num_features():
         num_features += int(compiler.options.features[i])
     return num_features
 
-# To optimize memory usage, the features arguemnt should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
+# To optimize memory usage, the features argument should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
 # storing an additional matrix for alice's and bob's values
 def sgd_linreg():
     if not compiler.options.features or not compiler.options.label:
@@ -142,7 +142,7 @@ def sgd_linreg():
 
     print_ln('Model Weights: %s', linear.opt.layers[0].W[:].reveal())
     print_ln('Model Bias: %s', linear.opt.layers[0].b.reveal())
-    print_ln('diff %s', (linear.predict(X_test) - y_test).reveal())
+    print_ln('Diff: %s', (linear.predict(X_test) - y_test).reveal())
 
 
     # Something like this that uses proper torch layers might be needed for implementing polyfeats and multivariate linreg

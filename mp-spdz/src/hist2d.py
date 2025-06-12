@@ -157,7 +157,6 @@ def main():
         hist_2d(max_rows, sfix)
     
     elif 'sfloat' in compiler.prog.args:
-        compiler.prog.use_trunc_pr = True
         print("----------------------------------------------------------------")
         print("Compiling for 2D Histogram using floating-point numbers (sfloat)")
         print("----------------------------------------------------------------")

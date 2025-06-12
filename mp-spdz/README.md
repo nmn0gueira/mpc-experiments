@@ -94,29 +94,10 @@ docker build \
 This is especially useful when experimenting with different programs while reusing the same machine configuration.
 
 ## TBD
-### Potential Optimizations
-- Certain operations can be optimized with multiple threads like for_range_opt_multithread() and certain protocol parameters
-- Certain protocols can run the required preprocessing without running the actual computation. This means we can separate them into an offline and online phase manually. The current supported protocols are `mascot`, `cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`. Check MP-SPDZ docs for more info,
-- Check cheat sheet for other optimizations.
-- Experiment with homomoprhic encryption with use_ntl=1 (especially galois field protocols).
-- Semi honest protocols can use the special probabilistic truncation function (used for linreg, for example). Leads to faster multiplications.
-- The --direct command line argument for fewer party protocols.
-- Configure multithreading as a compiler argument both for generating input and regular programs.
-
-#### Cross-Tabulation
-If possible, have it as one file that can be compiled into different named functions to avoid both performance loss and clutter.
-
-#### Compilation process
-- Decide if it is better to either: 
-	1. Have arguments and input shapes be specified by public_input():
-		1. Pros: Only compiles once
-		2. Cons: Still requires specifying a max size when compiling. May make the runtime slower.
-	2. Have input size and arguments (or only input size) known at compile time:
-		1. Pros: Makes runtime faster.
-		2. Cons: Compiling more than once
-
-#### Private Inputs
-Right now, the choice in how private inputs are handled is to either:
-1. The program to be ran itself has the input_tensor_via() function that is handled differently depending on the computing party. This makes local tests only feasible with docker compose
-2. Have an intermediary to generate binary or raw input from the input_tensor_via() function like iprep.py which will read the csv when compiled and generate the relevant player data. This data can then be used as input for other programs with input_from(). This facilitates local testing and the compiling by max size method (probably)
-After testing both, they seem to perform similarly that any performance difference is negligible.
+### Optimizations
+- `hist2d`: 
+	- The hist2d function is very slow in arithmetic protocols which makes sense as there are much more logic operations than arithmetic ones. Upgrading hardware might help, but it might be a good idea to try to implement a version that uses binary protocols instead.
+	- See if there is a way to access the max and min values for sint, sfix and sfloat types in the code (e.g. `sint.max_value()`). Additionally, current hard-coded values for sint and sfloat are wrong (copied from sfix).
+- `linreg`: 
+	- Potentially add a version of simple_linreg that separates into train and test phases. Would make use of the input being stored in columns as in sgd linreg.
+	- Add a version of sgd_linreg that uses user defined regular torch neural network as this might allow extensions such as poly feats or lasso/ridge regression (check linreg code comments for more info).
