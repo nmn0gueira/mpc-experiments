@@ -10,7 +10,6 @@ if [ -z "$python_script" ]; then
     exit 1
 fi
 
-# This shift is to remove the first argument (the python script name)
 shift
 
 cp src/${python_script} $MP_SPDZ_PATH/${python_script}

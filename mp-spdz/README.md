@@ -23,9 +23,9 @@ To simplify the usage of MP-SPDZ locally while keep the environment uncluttered,
 #### Setup Data
 To run the programs, you will need to prepare program input. You can do this by running the `iprep.sh` script:
 ```bash
-scripts/iprep.sh -g -c <program> [<geninput_args>]
+scripts/iprep.sh [options] <program_name> [<geninput_args>]
 ```
-where `-g` and `-c` are optional flags to generate the data and copy it to `MP-SPDZ/Player-Data`, respectively, and `<program>` is the name of the program you want to setup the data for. The `<geninput_args>` are the arguments that you want to pass to the `geninput.py` script.
+where `<program_name>` is the name of the program compiled (or to be compiled) that is in the `src` folder. For more information on the available options, you can run `scripts/iprep.sh --help`.
 
 
 #### Compiling

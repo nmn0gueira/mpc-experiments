@@ -7,6 +7,11 @@ from sklearn.model_selection import train_test_split
 
 usage = "usage: %prog [options] [args]"
 compiler = Compiler(usage=usage)
+
+# Options for defining the input matrices and their dimensions
+compiler.parser.add_option("--columns", dest="columns", type=str, help="Columns to be used")
+
+# Split options
 compiler.parser.add_option("--test_size", dest="test_size", default=0.2, type=float, help="Proportion of the dataset to include in the test split (default: 0.2)")
 compiler.parser.add_option("--random_state", dest="random_state", default=42, type=int, help="Random seed for reproducibility (default: 42)")
 compiler.parse_args()
@@ -17,43 +22,55 @@ compiler.parse_args()
 # Add an option to scale features and normalize labels in here, if necessary.
 
 
-def csv2spdz(path, party, split, binary):
-    """
-    Reads a CSV file and inputs the data into MP-SPDZ for the specified party.
-    
-    Parameters:
-    path : str
-        Path to the CSV file.
-    party : int
-        Party ID (0 or 1).
-    split : bool
-        Whether to split the data into training and test sets.
-    binary : bool
-        Whether to input the data as binary.
-    """
+def store_df(df, party, binary, by_column):
+    if by_column:  # Store each column as a separate tensor (this helps optimize memory when performing linear regression, for example)
+
+        for col in df.columns:
+            sint.input_tensor_via(party, df[col].values, binary=binary)
+    else:
+        sint.input_tensor_via(party, df.values, binary=binary)
+
+def csv2spdz(path, party, columns, split, binary, by_column):
     df = pd.read_csv(path)
+
+    if columns:
+        # Convert columns to a list of integers if they are provided as indices
+        if isinstance(columns, str):
+            columns = [int(col) for col in columns.split(',')]
+        df = df.iloc[:, columns]
     
     if split:
         df_train, df_test = train_test_split(df, test_size=compiler.options.test_size, random_state=compiler.options.random_state) # Use shuffle=False if debugging
-        # Store each column as a separate tensor (this helps optimize memory when performing linear regression, for example)
-        for col in df_train.columns:
-            sint.input_tensor_via(party, df_train[col].values, binary=binary)
-            sint.input_tensor_via(party, df_test[col].values, binary=binary)
-
+        store_df(df_train, party, binary, by_column)
+        store_df(df_test, party, binary, by_column)
         print(f"Input data for party {party}: {df_train.shape[0]} training samples, {df_test.shape[0]} test samples.")
     else:
-        sint.input_tensor_via(party, df.values, binary=binary)
+        store_df(df, party, binary, by_column)
         print(f"Input data for party {party}: {df.shape[0]} samples.")
+
+
+def parse_columns(columns):
+    a_columns = []
+    b_columns = []
+    for i in range(0, len(columns), 2):
+        if columns[i] == 'a':
+            a_columns.append(int(columns[i + 1]))
+        elif columns[i] == 'b':
+            b_columns.append(int(columns[i + 1]))
+    return a_columns, b_columns
 
 
 @compiler.register_function('csv2spdz')
 def main():
     split = 'split' in compiler.prog.args
     binary = 'binary' in compiler.prog.args
+    by_column = 'by_column' in compiler.prog.args
+
+    a_columns, b_columns = parse_columns(compiler.options.columns) if compiler.options.columns else (None, None)
     if 'party0' in compiler.prog.args:
-        csv2spdz('Player-Data/alice/data.csv', 0, split, binary)
+        csv2spdz('Player-Data/alice/data.csv', 0, a_columns, split, binary, by_column)
     if 'party1' in compiler.prog.args:
-        csv2spdz('Player-Data/bob/data.csv', 1, split, binary)
+        csv2spdz('Player-Data/bob/data.csv', 1, b_columns, split, binary, by_column)
         
 
 if __name__ == "__main__":

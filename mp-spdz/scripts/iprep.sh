@@ -2,31 +2,99 @@
 # input preparation script
 set -e
 
-generate=false
-copy=false
+split=false
+binary=false
+columns=""
+by_column=false
+
+verbose=false
+
 MP_SPDZ_PATH="MP-SPDZ"
 destination_dir="$MP_SPDZ_PATH/Player-Data"
 generated_data_dir="data/"
 
 usage() {
-    echo "Usage: $0 [-g] [-c] <program_name> [<geninput_args>]"
-    echo "  -g                Generate data"
-    echo "  -c                Copy generated data"
-    echo "  <program_name>    Name of the program to run"
-    echo "  [<geninput_args>] Additional arguments for geninput.py"
+    echo "Usage: $0 [options] <program_name> [<geninput_args>]"
     echo ""
-    echo "  Generator script arguments:"
-    echo "    -l <num_rows>   Specify the number of rows for the generated data (default: 10)"
-    echo "    -n <num_bits>   Specify the number of bits for each number (default: 32)"
+    echo "Options:"
+    echo "  -s, --split         Split the input data into multiple files (e.g., train data and test data) (default: false)"
+    echo "  -b, --binary        Use binary format for the input data (default: false)"
+    echo "  -c <columns>        Specify columns to copy (e.g., a0b1 for alice's column 0 and bob's column 1)"
+    echo "  --by_column         Store input by column instead of by row (used for programs that read input by column instead of by row such as 'linreg' and 'xtabs')"
+    echo "  -v, --verbose       Enable verbose output (compile output will be shown)"
+    echo "  -h, --help          Show this help message"
+    echo ""
+    echo "Arguments:"
+    echo "  <program_name>      Name of the program to run (e.g., linreg, xtabs)"
+    echo "  [<geninput_args>]   Additional arguments from geninput.py (e.g., -l 100 for 100 rows)"
+    echo ""
+    echo "Example:"
+    echo "  $0 linreg -s -c a0b1 --by_column -l 10000"
+    echo ""
     exit 1
 }
 
-# Parse options using getopts
-while getopts "gc" opt; do
-    case $opt in
-        g) generate=true ;;
-        c) copy=true ;;
-        *) usage ;;
+csv2spdz() {
+    split_option=""
+    if $split; then
+        split_option="split"
+    fi
+    binary_option=""
+    if $binary; then
+        binary_option="binary"
+    fi
+    columns_option=""
+    if [[ -n "$columns" ]]; then
+        columns_option="--columns $columns"
+    fi
+    by_column_option=""
+    if $by_column; then
+        by_column_option="by_column"
+    fi
+
+    if $verbose; then
+        python csv2spdz.py party0 party1 $split_option $binary_option $columns_option $by_column_option
+    else
+        python csv2spdz.py party0 party1 $split_option $binary_option $columns_option $by_column_option > /dev/null
+    fi
+
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -s|--split)
+            split=true
+            shift
+            ;;
+        -b|--binary)
+            binary=true
+            shift
+            ;;
+        -c|--columns)
+            if [[ -z "$2" ]]; then
+                echo "Error: --columns requires an argument."
+                usage
+            fi
+            columns="$2"
+            shift 2
+            ;;
+        --by_column)
+            by_column=true
+            shift
+            ;;
+        -v|--verbose)
+            verbose=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        -*)
+            usage
+            ;;
+        *)
+            break
+            ;;
     esac
 done
 
@@ -37,22 +105,14 @@ program_name=$1
 if [ -z "$program_name" ]; then
     usage
 fi
-if [ "$generate" = false ] && [ "$copy" = false ]; then
-    echo "At least one of -g or -c must be specified."
-    usage
-fi
 
 shift
 
-if [ "$generate" = true ]; then
-    python scripts/geninput.py -e $program_name $@
-    echo "Generated data for <$program_name>"
-fi
+# Actual data gen
+python scripts/geninput.py -e $program_name $@
 
-if [ "$copy" = true ]; then
-    cp -r $generated_data_dir/$program_name/* $destination_dir/
-    cp scripts/csv2spdz.py $MP_SPDZ_PATH
-    cd $MP_SPDZ_PATH
-    python csv2spdz.py party0 party1 #split #> /dev/null # Compile to obtain MP-SPDZ input from csv (compile.sh python script starts at directory src/examples)
-    echo "Copied <$program_name> data to $destination_dir."
-fi
+# Copy to mp-spdz dir and convert to mp-spdz input
+cp -r $generated_data_dir/$program_name/* $destination_dir/
+cp scripts/csv2spdz.py $MP_SPDZ_PATH
+cd $MP_SPDZ_PATH
+csv2spdz
