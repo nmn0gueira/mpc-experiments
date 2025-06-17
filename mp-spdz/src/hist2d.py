@@ -1,15 +1,13 @@
 from Compiler.types import Array, Matrix, sfix, sint, sfloat
-from Compiler.library import print_ln, for_range_opt, for_range, for_range_parallel
+from Compiler.library import print_ln, for_range_opt
 from Compiler.compilerLib import Compiler
-from Compiler import ml
-#import torch.nn as nn
 
 
 usage = "usage: %prog [options] [args]"
 compiler = Compiler(usage=usage)
 
 # Options for defining the input matrices and their dimensions
-compiler.parser.add_option("--rows", dest="rows", type=int, help="Number of rows for the input matrices)")
+compiler.parser.add_option("--rows", dest="rows", type=int, help="Number of rows for the inputs)")
 compiler.parse_args()
 
 if not compiler.options.rows:
@@ -18,14 +16,17 @@ if not compiler.options.rows:
 NUM_BINS_X = 5
 NUM_BINS_Y = 5
 
+# 16, 16 bit fixed-point range (as per MP-SPDZ docs)
 MAX_SFIX = 16383
 MIN_SFIX = -16383
 
-MAX_SINT = 16383
-MIN_SINT = -16383
+# 32 bit signed integer range
+MAX_SINT = 2_147_483_647
+MIN_SINT = -2_147_483_647
 
-MAX_SFLOAT = 16383
-MIN_SFLOAT = -16383
+# 32 bit float range
+MAX_SFLOAT = 3_402_823_466_385_288_000_000_000
+MIN_SFLOAT = -3_402_823_466_385_288_000_000_000
 
 def calc_extremities(array, secret_type):
     if secret_type == sfix:
@@ -47,6 +48,7 @@ def calc_extremities(array, secret_type):
     
     return min_value, max_value
 
+
 def linspace(size, min_value, max_value, secret_type):
     array = Array(size, secret_type)
     step = (max_value - min_value) / secret_type(size - 1)
@@ -55,6 +57,7 @@ def linspace(size, min_value, max_value, secret_type):
         array[i] = array[i-1] + step
     array[size-1] = max_value
     return array
+
 
 def digitize(val, bins, bin_edges, num_edges):
     found_index = sint(0)
@@ -70,6 +73,7 @@ def digitize(val, bins, bin_edges, num_edges):
         found_index.update(mux(found_index.bit_not(), select, found_index))
 
     return bin_to_index
+
 
 def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
@@ -138,8 +142,6 @@ def hist_2d(max_rows, secret_type):
             print_ln("hist2d[%s][%s]: %s", i, j, hist2d[i][j].reveal())
 
 
-
-
 @compiler.register_function('hist2d')
 def main():
     global ZERO
@@ -149,24 +151,27 @@ def main():
 
     max_rows = compiler.options.rows
 
-    if 'sfix' in compiler.prog.args:
+    if 'fix' in compiler.prog.args:
         compiler.prog.use_trunc_pr = True
         print("-----------------------------------------------------------")
         print("Compiling for 2D Histogram using fixed-point numbers (sfix)")
         print("-----------------------------------------------------------")
         hist_2d(max_rows, sfix)
     
-    elif 'sfloat' in compiler.prog.args:
+    elif 'float' in compiler.prog.args:
         print("----------------------------------------------------------------")
         print("Compiling for 2D Histogram using floating-point numbers (sfloat)")
         print("----------------------------------------------------------------")
         hist_2d(max_rows, sfloat)
 
-    else:
+    elif 'int' in compiler.prog.args:
         print("-----------------------------------------------------------------")
-        print("(Default) Compiling for 2D Histogram using integer numbers (sint)")
+        print("Compiling for 2D Histogram using integer numbers")
         print("-----------------------------------------------------------------")
         hist_2d(max_rows, sint)
+
+    else:
+        raise ValueError("Please specify the type of numbers to use: 'fix', 'float', or 'int'.")
     
 
 if __name__ == "__main__":
