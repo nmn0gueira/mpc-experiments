@@ -29,7 +29,7 @@ usage() {
     echo "  [<geninput_args>]   Additional arguments from geninput.py (e.g., -l 100 for 100 rows)"
     echo ""
     echo "Example:"
-    echo "  $0 linreg -s -c a0b1 --by_column -l 10000"
+    echo "  $0 -s -c a0b0 --by_column linreg -l 10000"
     echo ""
     exit 1
 }

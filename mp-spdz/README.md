@@ -96,8 +96,7 @@ This is especially useful when experimenting with different programs while reusi
 ## TBD
 ### Optimizations
 - `hist2d`: 
-	- The hist2d function is very slow in arithmetic protocols which makes sense as there are much more logic operations than arithmetic ones. Upgrading hardware might help, but it might be a good idea to try to implement a version that uses binary protocols instead.
-	- See if there is a way to access the max and min values for sint, sfix and sfloat types in the code (e.g. `sint.max_value()`). Additionally, current hard-coded values for sint and sfloat are wrong (copied from sfix).
+	- The hist2d function is very slow in arithmetic protocols which makes sense as there are much more logic operations than arithmetic ones. Upgrading hardware might help, but it might be a good idea to try to implement a version that uses binary protocols instead. If doing so, be aware that only sbitfixvec types are capable of division in binary circuits, so it will be needed to either mix sbitfixvec with sbitintvec or only use sbitfixvec. Alternatively, to only use sbitintvec, the values may be public since they are going to be revealed anyway.
 - `linreg`: 
-	- Potentially add a version of simple_linreg that separates into train and test phases. Would make use of the input being stored in columns as in sgd linreg.
-	- Add a version of sgd_linreg that uses user defined regular torch neural network as this might allow extensions such as poly feats or lasso/ridge regression (check linreg code comments for more info).
+	- Add a version of sgd_linreg that uses a user-defined model as this might allow extensions such as poly feats or lasso/ridge regression (check linreg code comments for more info).
+  - Add a mean squared error loss function to the linreg program.
