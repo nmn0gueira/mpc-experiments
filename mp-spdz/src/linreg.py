@@ -2,6 +2,8 @@ from Compiler.types import Array, Matrix, sfix
 from Compiler.library import print_ln, for_range_opt, for_range, for_range_parallel
 from Compiler.compilerLib import Compiler
 from Compiler import ml
+import re
+
 #import torch.nn as nn
 
 
@@ -29,7 +31,7 @@ if not compiler.options.rows:
 
 def simple_linreg():
     """
-    Simple linreg where Alice holds the feature column and Bob holds the target column.
+    Simple linreg where Alice holds the feature column and Bob holds the target column. Purely for demonstration purposes.
     """
     max_rows = compiler.options.rows
 
@@ -65,11 +67,72 @@ def simple_linreg():
     print_ln("Slope (beta_1): %s", beta_1.reveal())
 
 
-def get_num_features():
-    num_features = 0
-    for i in range(1, len(compiler.options.features), 2):
-        num_features += int(compiler.options.features[i])
-    return num_features
+def parse_columns(format_str):
+    pattern = r"^a(\d*)b(\d*)$"
+    
+    # Match the pattern
+    match = re.match(pattern, format_str)
+    
+    if match:
+        a_str, b_str = match.groups()
+        
+        a_columns = int(a_str) if a_str else 0
+        b_columns = int(b_str) if b_str else 0
+        
+        return a_columns, b_columns
+    
+    else:
+        raise ValueError(f"Invalid format: {format_str}")
+    
+
+def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
+    num_features = alice_columns + bob_columns
+
+    print("Number of features for Alice: %s, Number of features for Bob: %s", alice_columns, bob_columns)
+
+
+    X_train = Matrix(rows_train, num_features, sfix)
+    X_test = Matrix(rows_test, num_features, sfix)
+
+    current_train_column = current_test_column = 0
+    for _ in range(alice_columns):
+        @for_range_opt(rows_train)
+        def _(i):
+            X_train[i][current_train_column] = sfix.get_input_from(0)
+        
+        current_train_column += 1
+
+    for _ in range(bob_columns):
+        @for_range_opt(rows_train)
+        def _(i):
+            X_train[i][current_train_column] = sfix.get_input_from(1)
+
+        current_train_column += 1
+
+    for _ in range(alice_columns):
+        @for_range_opt(rows_test)
+        def _(i):
+            X_test[i][current_test_column] = sfix.get_input_from(0)
+
+        current_test_column += 1
+
+    for _ in range(bob_columns):
+        @for_range_opt(rows_test)
+        def _(i):
+            X_test[i][current_test_column] = sfix.get_input_from(1)
+
+        current_test_column += 1
+    
+    label_holder = 0 if compiler.options.label == 'a' else 1
+
+    y_train = Array(rows_train, sfix)
+    y_test = Array(rows_test, sfix)
+
+    y_train.input_from(label_holder)
+    y_test.input_from(label_holder)
+
+    return X_train, X_test, y_train, y_test
+
 
 # To optimize memory usage, the features argument should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
 # storing an additional matrix for alice's and bob's values
@@ -80,53 +143,9 @@ def sgd_linreg():
     rows_train = int(compiler.options.rows * (1 - compiler.options.test_size))
     rows_test = int(compiler.options.rows * compiler.options.test_size)
 
-    num_features = get_num_features()
+    alice_columns, bob_columns = parse_columns(compiler.options.features)
 
-    X_train = Matrix(rows_train, num_features, sfix)
-    X_test = Matrix(rows_test, num_features, sfix)
-
-    current_column = 0
-    for i in range(0, len(compiler.options.features), 2):
-        num_cols = int(compiler.options.features[i + 1])
-
-        if compiler.options.features[i] == 'a':
-            for _ in range(num_cols):
-                @for_range_opt(rows_train)
-                def _(i):
-                    X_train[i][current_column] = sfix.get_input_from(0)
-
-                @for_range_opt(rows_test)
-                def _(i):
-                    X_test[i][current_column] = sfix.get_input_from(0)
-                
-                current_column += 1
-        
-        elif compiler.options.features[i] == 'b':
-            for _ in range(num_cols):
-                @for_range_opt(rows_train)
-                def _(i):
-                    X_train[i][current_column] = sfix.get_input_from(1)
-
-                @for_range_opt(rows_test)
-                def _(i):
-                    X_test[i][current_column] = sfix.get_input_from(1)
-
-                current_column += 1
-
-
-    y_train = Array(rows_train, sfix)
-    y_test = Array(rows_test, sfix)
-
-    label_holder = 0 if compiler.options.label == 'a' else 1
-
-    @for_range_opt(rows_train)
-    def _(i):
-        y_train[i] = sfix.get_input_from(label_holder)
-
-    @for_range_opt(rows_test)
-    def _(i):
-        y_test[i] = sfix.get_input_from(label_holder)
-    
+    X_train, X_test, y_train, y_test = get_X_y(alice_columns, bob_columns, rows_train, rows_test)    
 
     """ for i in range(X_train.shape[0]):
         for j in range(X_train.shape[1]):
@@ -135,6 +154,9 @@ def sgd_linreg():
     for i in range(X_test.shape[0]):
         for j in range(X_test.shape[1]):
             print_ln("X_test[%s][%s]: %s", i, j, X_test[i][j].reveal()) """
+
+    #print_ln("y_train: %s", y_train.reveal())
+    #print_ln("y_test: %s", y_test.reveal())
     
     
     linear = ml.SGDLinear(compiler.options.n_epochs, compiler.options.batch_size)
@@ -142,7 +164,10 @@ def sgd_linreg():
 
     print_ln('Model Weights: %s', linear.opt.layers[0].W[:].reveal())
     print_ln('Model Bias: %s', linear.opt.layers[0].b.reveal())
-    print_ln('Diff: %s', (linear.predict(X_test) - y_test).reveal())
+    #print_ln('Diff: %s', (linear.predict(X_test) - y_test).reveal())
+    # Thetas
+    #for theta in linear.opt.thetas:
+    #    print_ln('Theta: %s', theta.reveal())
 
 
     # Something like this that uses proper torch layers might be needed for implementing polyfeats and multivariate linreg
