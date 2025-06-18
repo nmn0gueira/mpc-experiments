@@ -1,6 +1,7 @@
 import argparse, random, os, math, errno
 import numpy as np
 from operator import itemgetter
+from sklearn.datasets import make_regression
 
 np.set_printoptions(legacy='1.25')
 
@@ -30,9 +31,13 @@ def write_to_file(filepath, data):
 def write_files(program, party, *columns):
     files_dir = os.path.join(BASE_DIR, program, party)
 
-    for i, column in enumerate(columns):
-        filepath = os.path.join(files_dir, str(i) + ".dat")
-        write_to_file(filepath, column)
+    if isinstance(columns[0], (list, np.ndarray)):
+        for i, column in enumerate(columns):
+            filepath = os.path.join(files_dir, str(i) + ".dat")
+            write_to_file(filepath, column)
+    else:
+        filepath = os.path.join(files_dir, "0.dat")
+        write_to_file(filepath, columns)
     
 
 def get_rand_list(bits, l):
@@ -66,7 +71,7 @@ def gen_input(n, l, adjust_bit_length=True):
     return list_a, list_b
 
 
-def gen_xtabs_input(n, l):
+def gen_xtabs_input(l):
     '''
     Generates input for xtabs program. This input functions as if both parties already have their input ordered. One party has the (typically 
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
@@ -74,7 +79,7 @@ def gen_xtabs_input(n, l):
     '''
 
     categories_a, categories_b = gen_input(2, l, adjust_bit_length=False)
-    values_a, values_b = gen_input(n, l)
+    values_a, values_b = gen_input(32, l)
 
     print_xtabs(categories_a, categories_b, values_b)
     return (categories_a, values_a), (categories_b, values_b)
@@ -189,46 +194,63 @@ def print_xtabs(categories_a, categories_b, values):
     print(f"Expected values (std1): {sorted(std1.items())}\n")
 
 
-def gen_linreg_input(n, l):
+def gen_linreg_input(l, scale_features=True, normalize_labels=True):
+    X, y = make_regression(n_samples=l, n_features=1)
+
+    if scale_features:
+        X = get_scaled(X)
+
+    if normalize_labels:
+        y = get_normalized(y)
+
+    print_simple_linreg(X[:, 0], y)
+
+    return X.transpose(), y
+
+
+def get_scaled(features):
+    mean = np.mean(features, axis=0)
+    std = np.std(features, axis=0)
+    scaled_features = (features - mean) / std
+    return scaled_features
+
+
+def get_normalized(labels):
+    max_label = np.max(labels, axis=0)
+    normalized_labels = labels / max_label
+    return normalized_labels
+
+
+def print_simple_linreg(features, labels):
     '''
     Model: y = beta_0 + beta_1 * x
     '''
-    
-    features, labels = gen_input(n, l)
-
-    print_linreg(features, labels)
-    return (features,), (labels,)
-
-
-def print_linreg(features, labels, scale=True):
-    if (scale):
-        mean = np.mean(features)
-        std = np.std(features)
-        features = (features - mean) / std
-        print(f"Expected mean: {mean}")
-        print(f"Expected standard deviation: {std}")
- 
     sum_x = np.sum(features)
     sum_y = np.sum(labels)
     sum_xy = sum(x*y for x,y in zip(features,labels))
     sum_x2 = sum(x**2 for x in features)
     input_size = len(features)
+
     
     beta_1 = (input_size * sum_xy - sum_x * sum_y) / (input_size * sum_x2 - sum_x ** 2)
     beta_0 = (sum_y - beta_1 * sum_x) / input_size
 
     squared_errors = sum((y_true - (beta_0 + beta_1 * x)) ** 2 for x, y_true in zip(features, labels))
 
+    #print(f"sum x: {sum_x}")
+    #print(f"sum y: {sum_y}")
+    #print(f"sum xy: {sum_xy}")
+    #print(f"sum x^2: {sum_x2}")
     print(f"Expected intercept (beta_0): {beta_0}")
     print(f"Expected slope (beta_1): {beta_1}")
     print(f"Expected training error of model (MSE): {squared_errors / len(features)}")
 
 
-def gen_hist2d_input(n, l):
-    values_a, values_b = gen_input(n, l)
+def gen_hist2d_input(l):
+    values_a, values_b = gen_input(32, l)
 
     print_hist2d(values_a, values_b)
-    return (values_a,), (values_b,)
+    return values_a, values_b
 
 
 def print_hist2d(values_a, values_b):
@@ -281,8 +303,6 @@ def print_hist2d(values_a, values_b):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='generates input for emp-toolkit sample programs')
-    parser.add_argument('-n', default=32, type=int, 
-        help="integer bit length")
     parser.add_argument('-l', default=10, type=int, 
         help="array length")
     
@@ -301,7 +321,7 @@ if __name__ == "__main__":
     program_function = PROGRAMS.get(args.e)
 
     if program_function:
-        alice_data, bob_data = program_function(args.n, args.l)
+        alice_data, bob_data = program_function(args.l)
         write_files(args.e, PARTY_ALICE, *alice_data)
         write_files(args.e, PARTY_BOB, *bob_data)
 

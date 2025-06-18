@@ -28,10 +28,10 @@ make
 To run the examples, you will need sample data. This data can be generated with the python script included in the repository. Usage of the script is as follows:
 
 ```bash
-python3 scripts/geninput.py -e <ex> -n <bitsize> -l <numrows>
+python3 scripts/geninput.py -e <ex> -l <numrows>
 ```
 
-The default for -n and -l is 32 and 10 respectively.
+The default for -l is 10.
 
 ### Running the examples
 Some examples may have slightly different arguments where it is best to check the usage by simplifying executing the program without arguments. In general, to run an example you can run the following command for Alice:
