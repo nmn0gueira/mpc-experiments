@@ -16,21 +16,21 @@ const int BITSIZE = 32;
 /**
  * Single variable linear regression. Assumes Alice has the feature column and Bob has the labels.
  */
-void test_linreg(string inputs[], int input_len, bool scale=true) {
+void test_linreg(string inputs[], int input_len) {
 	Float *a = new Float[input_len];
 	Float *b = new Float[input_len];
 	Float input_size = Float(input_len, PUBLIC);
-	Float sum_x = Float();
+	Float sum_x = Float();	// This value will be the least precise among the sums, even though it still leads to correct result
 	Float sum_y = Float();
 	Float sum_xy = Float();
 	Float sum_x2 = Float();
 
 	for (int i = 0; i < input_len; ++i) {
-		a[i] = Float(stoi(inputs[i]), ALICE);
+		a[i] = Float(stof(inputs[i]), ALICE);
 	}
 
 	for (int i = 0; i < input_len; ++i) {
-		b[i] = Float(stoi(inputs[i]), BOB);
+		b[i] = Float(stof(inputs[i]), BOB);
 	}
 
 	for (int i = 0; i < input_len; ++i) {
@@ -41,7 +41,6 @@ void test_linreg(string inputs[], int input_len, bool scale=true) {
 	}
 	
 	Float beta_1 = (input_size * sum_xy - sum_x * sum_y) / (input_size * sum_x2 - sum_x * sum_x);
-
 	Float beta_0 = (sum_y - beta_1 * sum_x) / input_size;
 
     cout << "Intercept (beta_0): " << beta_0.reveal<double>() << endl;
@@ -87,7 +86,7 @@ int main(int argc, char **argv) {
 
 	cout << "Number of elements: " << inputs.size() << endl;
 
-	utils::time_it(test_linreg, inputs.data(), inputs.size(), true);
+	utils::time_it(test_linreg, inputs.data(), inputs.size());
 
 	finalize_semi_honest();
 
