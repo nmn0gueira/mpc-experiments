@@ -744,6 +744,9 @@ void test_xtabs(int party, int input_size, char aggregation, char* agg_cols, cha
 }
 
 
+/**
+ * TODO: Change the way columns are parsed to be more flexible and not crash with a column that is represented by more than 1 digit
+ */
 int main(int argc, char **argv) {
 	if (argc != 8 && argc != 9) {
 		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <aggregation> <aggregate_by> <value_col> <input_dir>" << endl;

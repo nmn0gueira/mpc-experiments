@@ -1,3 +1,7 @@
+/**
+ * @file utils.hpp
+ * @brief This file contains random utility functions.
+ */
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
@@ -65,8 +69,7 @@ namespace utils {
         const_cast<std::string&>(get_directory()) = dir;
         is_set = true;
     }
-
-
+    
     ifstream get_input_file(char col) {
         string file_path = get_directory() + "/" + col + ".dat";
         ifstream infile(file_path);

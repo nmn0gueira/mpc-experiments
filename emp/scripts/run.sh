@@ -23,6 +23,9 @@ XTABS_GROUPBY_ONE=a0
 XTABS_GROUPBY_TWO=a0b0
 XTABS_VALUE_COLUMN=b1
 
+HIST2D_NUM_EDGES_X=6
+HIST2D_NUM_EDGES_Y=6
+
 # Default values
 alice=false
 bob=false
@@ -114,8 +117,8 @@ case $program in
             echo "hist2d requires choosing a mode for how the type used for the defined bins ((i)nt or (f)loat)"
             exit 1
         fi
-        alice_command="./build/bin/hist2d $PARTY_A $PORT $input_size $mode $HIST2D_INPUT_A"
-        bob_command="./build/bin/hist2d $PARTY_B $PORT $address $input_size $mode $HIST2D_INPUT_B"
+        alice_command="./build/bin/hist2d $PARTY_A $PORT $input_size $mode $HIST2D_NUM_EDGES_X $HIST2D_NUM_EDGES_Y $HIST2D_INPUT_A"
+        bob_command="./build/bin/hist2d $PARTY_B $PORT $address $input_size $mode $HIST2D_NUM_EDGES_X $HIST2D_NUM_EDGES_Y $HIST2D_INPUT_B"
         ;;
     * )
         echo "Unknown program: $program"

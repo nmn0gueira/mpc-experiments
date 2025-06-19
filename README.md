@@ -30,11 +30,9 @@ Below is a general overview of the implemented functions. For detailed informati
   - Add more aggregations (e.g., median).
 - `linreg`: 
   - Extend it to support polynomial regression.
-  - Add support for categorical variables (e.g., one-hot encoding).
   - Implement regularization techniques like Lasso or Ridge regression.
 - `hist2d`:
   - Allow performing aggregations on the binned values (requires an additional value column).
-  - Allow defining number of bins and binning strategy.
 
 ### Frameworks
 Support for other frameworks may be added in the future. In particular, the following frameworks are of interest (at the moment):

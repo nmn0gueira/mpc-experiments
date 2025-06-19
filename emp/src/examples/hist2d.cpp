@@ -5,48 +5,42 @@
 using namespace emp;
 using namespace std;
 
-const int NUM_BINS_X = 5;
-const int NUM_BINS_Y = 5;
 
-void calc_extremeties(Integer * arr, int size, Integer & min, Integer & max) {
-	// We need to determine the max and min values to determine the bins for each coordinate
-	for (int i = 0; i < size; ++i) {
-		Bit gt = arr[i] > max;
-		max = max.select(gt, arr[i]);
-
-		Bit lt = arr[i] < min;
-		min = min.select(lt, arr[i]);
+void initialize_edges(Integer * bin_edges, int num_edges, ifstream & infile, string & line) {
+	int previous = numeric_limits<int>::min();
+	for (int i = 0; i < num_edges; ++i) {
+		getline(infile, line);
+		int element = stoi(line);
+		if (element < previous) {
+			cerr << "Error: bin edges must be in ascending order." << endl;
+			exit(1);
+		} 	
+		previous = element;
+		bin_edges[i] = Integer(BITSIZE, element, PUBLIC);
 	}
 }
 
-void calc_extremeties(Float * arr, int size, Float & min, Float & max) {
-	// We need to determine the max and min values to determine the bins for each coordinate
-	for (int i = 0; i < size; ++i) {
-		// If the value is not less or equal than max_x than it is greater than max_x
-		Bit gt = !arr[i].less_equal(max);
-		max = max.If(gt, arr[i]);
-
-		Bit lt = arr[i].less_than(min);
-		min = min.If(lt, arr[i]);
+void initialize_edges(Float * bin_edges, int num_edges, ifstream & infile, string & line) {
+	float previous = numeric_limits<float>::lowest();
+	for (int i = 0; i < num_edges; ++i) {
+		getline(infile, line);
+		float element = stof(line);
+		if (element < previous) {
+			cerr << "Error: bin edges must be in ascending order." << endl;
+			exit(1);
+		}
+		previous = element;
+		bin_edges[i] = Float(element, PUBLIC);
 	}
 }
 
-void linspace(Integer * arr, int size, Integer min, Integer max) {
-	Integer step = (max - min) / Integer(BITSIZE, size - 1);
-	arr[0] = min;
-	for (int i = 1; i < size - 1; ++i) {
-		arr[i] = arr[i-1] + step;
-	}
-	arr[size - 1] = max;
-}
-
-void linspace(Float * arr, int size, Float min, Float max) {
-	Float step = (max - min) / Float(size - 1, PUBLIC);
-	arr[0] = min;
-	for (int i = 1; i < size - 1; ++i) {
-		arr[i] = arr[i-1] + step;
-	}
-	arr[size - 1] = max;
+template <typename T>
+void initialize_edges(T * bin_edges_x, T * bin_edges_y, int num_edges_x, int num_edges_y) {
+	ifstream infile_x = utils::get_input_file('1');
+	ifstream infile_y = utils::get_input_file('2');
+	string line;
+	initialize_edges(bin_edges_x, num_edges_x, infile_x, line);
+	initialize_edges(bin_edges_y, num_edges_y, infile_y, line);
 }
 
 /**
@@ -85,50 +79,13 @@ void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integ
 
 		// Only updates found_index the first time
 		found_index = found_index.select(!found_index, select);
-
-	}
-}
-
-void initialize_extremeties(Integer &max_x, Integer &min_x, Integer &max_y, Integer &min_y) {
-	max_x = Integer(BITSIZE, numeric_limits<int>::min(), PUBLIC);
-	min_x = Integer(BITSIZE, numeric_limits<int>::max(), PUBLIC);
-	max_y = Integer(BITSIZE, numeric_limits<int>::min(), PUBLIC);
-	min_y = Integer(BITSIZE, numeric_limits<int>::max(), PUBLIC);
-}
-
-void initialize_extremeties(Float &max_x, Float &min_x, Float &max_y, Float &min_y) {
-	max_x = Float(numeric_limits<float>::min(), PUBLIC);
-	min_x = Float(numeric_limits<float>::max(), PUBLIC);
-	max_y = Float(numeric_limits<float>::min(), PUBLIC);
-	min_y = Float(numeric_limits<float>::max(), PUBLIC);
-}
-
-void reveal_bin_edges(Float * bin_edges_x, Float * bin_edges_y, int num_edges_x, int num_edges_y) {
-	for (int i = 0; i < num_edges_x; ++i) {
-		cout << "Bin Edge x (" << i << "): " << bin_edges_x[i].reveal<double>() << endl;
-	}
-
-	for (int i = 0; i < num_edges_y; ++i) {
-		cout << "Bin Edge y (" << i << "): " << bin_edges_y[i].reveal<double>() << endl;
-	}
-}
-
-void reveal_bin_edges(Integer * bin_edges_x, Integer * bin_edges_y, int num_edges_x, int num_edges_y) {
-	for (int i = 0; i < num_edges_x; ++i) {
-		cout << "Bin Edge x (" << i << "): " << bin_edges_x[i].reveal<int>() << endl;
-	}
-
-	for (int i = 0; i < num_edges_y; ++i) {
-		cout << "Bin Edge y (" << i << "): " << bin_edges_y[i].reveal<int>() << endl;
 	}
 }
 
 void reveal_hist2d(Integer* hist2d, int num_bins_x, int num_bins_y) {
 	for (int y = 0; y < num_bins_y; ++y) {
 		for (int x = 0; x < num_bins_x; ++x) {
-			int hist_value =  hist2d[y * num_bins_x + x].reveal<int>();
-			//total_sum += hist_value;
-			cout << "Hist2d (" << x << ", " << y << "): " << hist_value << endl;
+			cout << "Hist2d (" << x << ", " << y << "): " << hist2d[y * num_bins_x + x].reveal<int>() << endl;
 		}
 	}
 }
@@ -138,12 +95,12 @@ void reveal_hist2d(Integer* hist2d, int num_bins_x, int num_bins_y) {
  * being a count. In the feature this could be any sort of aggregation ig, like in xtabs.
  */
 template<typename T>
-void test_hist2d(int party, int input_size, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
+void test_hist2d(int party, int input_size, int num_edges_x, int num_edges_y) {
 	T *a = new T[input_size];
 	T *b = new T[input_size];
 
-	int num_edges_x = num_bins_x + 1;
-	int num_edges_y = num_bins_y + 1;
+	int num_bins_x = num_edges_x - 1;
+	int num_bins_y = num_edges_y - 1;
 	T bin_edges_x[num_edges_x];
 	T bin_edges_y[num_edges_y];
 
@@ -166,17 +123,8 @@ void test_hist2d(int party, int input_size, int num_bins_x=NUM_BINS_X, int num_b
 			hist2d[y * num_bins_x + x] = Integer(BITSIZE, 0);
 		}
 	}
-	T max_x;
-	T min_x;
-	T max_y;
-	T min_y;
-	initialize_extremeties(max_x, min_x, max_y, min_y);
 	
-	calc_extremeties(a, input_size, min_x, max_x);
-	calc_extremeties(b, input_size, min_y, max_y);
-
-	linspace(bin_edges_x, num_edges_x, min_x, max_x);
-	linspace(bin_edges_y, num_edges_y, min_y, max_y);
+	initialize_edges<T>(bin_edges_x, bin_edges_y, num_edges_x, num_edges_y);
 
 	Integer zero(BITSIZE, 0);
 	for (int i = 0; i < input_size; ++i) {
@@ -204,7 +152,6 @@ void test_hist2d(int party, int input_size, int num_bins_x=NUM_BINS_X, int num_b
 		}
 	}
 
-	reveal_bin_edges(bin_edges_x, bin_edges_y, num_edges_x, num_edges_y);
 	reveal_hist2d(hist2d, num_bins_x, num_bins_y);
 
 	delete[] a;
@@ -213,9 +160,15 @@ void test_hist2d(int party, int input_size, int num_bins_x=NUM_BINS_X, int num_b
 
 
 int main(int argc, char **argv) {
-	if (argc != 6 && argc != 7) {
-		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <mode> <input_dir>" << endl;
-		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <mode> <input_dir>" << endl;
+	if (argc != 8 && argc != 9) {
+		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <mode> <num_edges_x> <num_edges_y> <input_dir>" << endl;
+		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <mode> <num_edges_x> <num_edges_y> <input_dir>" << endl;
+		cout << endl;
+		cout << "Additional argument explanation: " << endl;
+		cout << "Modes: i - integer, f - float" << endl;
+		cout << "num_edges_x: number of edges for the x-axis (e.g. 6 edges -> 5 bins). These edges are stored in <input_dir>/1.dat" << endl;
+		cout << "num_edges_y: number of edges for the y-axis (e.g. 6 edges -> 5 bins). These edges are stored in <input_dir>/2.dat" << endl;
+		cout << "Input directory: directory containing the private input (0.dat) and the public bin edges files (1.dat and 2.dat)" << endl;
 		return 0;
 	}
     
@@ -224,8 +177,14 @@ int main(int argc, char **argv) {
 	// Parse the IP address if Bob (client), otherwise set to nullptr since Alice (server) doesn't need it
 	char * ip = nullptr;
 	if(party == BOB) ip = argv[3];
-	int input_size = atoi(argv[argc - 3]);
-	char* mode = argv[argc - 2];
+	int input_size = atoi(argv[argc - 5]);
+	char* mode = argv[argc - 4];
+	int num_edges_x = atoi(argv[argc - 3]);
+	int num_edges_y = atoi(argv[argc - 2]);
+	if (num_edges_x < 2 || num_edges_y < 2) {
+		cerr << "Error: num_edges_x and num_edges_y must be at least 2." << endl;
+		return 1;
+	}
 	utils::set_directory(argv[argc - 1]);
 
 	HighSpeedNetIO * io = new HighSpeedNetIO(ip, port, port + 1);
@@ -234,10 +193,10 @@ int main(int argc, char **argv) {
 
 	if (mode[0] == 'i') {
 		cout << "Running integer mode..." << endl;
-		utils::time_it(test_hist2d<Integer>, party, input_size, NUM_BINS_X, NUM_BINS_Y);
+		utils::time_it(test_hist2d<Integer>, party, input_size, num_edges_x, num_edges_y);
 	} else {
 		cout << "Running float mode..." << endl;
-		utils::time_it(test_hist2d<Float>, party, input_size, NUM_BINS_X, NUM_BINS_Y);
+		utils::time_it(test_hist2d<Float>, party, input_size, num_edges_x, num_edges_y);
 	}
 
 	finalize_semi_honest();
