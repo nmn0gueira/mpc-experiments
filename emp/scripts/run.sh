@@ -29,7 +29,7 @@ bob=false
 address=127.0.0.1
 
 usage() {
-    echo "Usage: $0 [-a] [-b <alice_address>] <program_name> [<args>]"
+    echo "Usage: $0 [-a] [-b <alice_address>] <program_name> <input_size> [<args>]"
     echo ""
     echo "Options:"
     echo "  -a                Run as Alice"
@@ -71,12 +71,15 @@ done
 shift $((OPTIND -1))
 
 program=$1
+input_size=$2
 
-if [ -z "$program" ]; then
-    echo "No program specified"
+if [ -z "$program" ] || [ -z "$input_size" ]; then
+    echo "Program name and input size are required."
     usage
     exit 1
 fi
+
+shift 2
 
 case $program in
     "millionaire" )
@@ -84,8 +87,8 @@ case $program in
         bob_command="./build/bin/millionaire $PARTY_B $PORT $address $MILLIONAIRE_INPUT_B"
         ;;
     "xtabs" ) 
-        aggregation=$2
-        groupby=$3
+        aggregation=$1
+        groupby=$2
         if [ -z "$aggregation" ] || [ -z "$groupby" ]; then
             echo "xtabs requires an aggregation type ((s)um | (a)vg | | a(v)g_fast | (m)ode | (f)req | st(d)ev) and number of group by columns (1 or 2)"
             exit 1
@@ -98,15 +101,15 @@ case $program in
             echo "Invalid group by column count. Use 1 or 2."
             exit 1
         fi
-        alice_command="./build/bin/xtabs $PARTY_A $PORT $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
-        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
+        alice_command="./build/bin/xtabs $PARTY_A $PORT $input_size $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_A"
+        bob_command="./build/bin/xtabs $PARTY_B $PORT $address $input_size $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
         ;;
     "linreg" )
         alice_command="./build/bin/linreg $PARTY_A $PORT $LINREG_INPUT_A"
         bob_command="./build/bin/linreg $PARTY_B $PORT $address $LINREG_INPUT_B"
         ;;
     "hist2d" )
-        mode=$2
+        mode=$1
         if [ -z "$mode" ]; then
             echo "hist2d requires choosing a mode for how the type used for the defined bins ((i)nt or (f)loat)"
             exit 1
