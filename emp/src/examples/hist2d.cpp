@@ -5,8 +5,6 @@
 using namespace emp;
 using namespace std;
 
-const int BITSIZE = 32;
-
 const int NUM_BINS_X = 5;
 const int NUM_BINS_Y = 5;
 
@@ -91,26 +89,6 @@ void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integ
 	}
 }
 
-void initialize_parties(Integer * alice, Integer * bob, string inputs[], int input_len) {
-	for (int i = 0; i < input_len; ++i) {
-		alice[i] = Integer(BITSIZE, stoi(inputs[i]), ALICE);
-	}
-
-	for (int i = 0; i < input_len; ++i) {
-		bob[i] = Integer(BITSIZE, stoi(inputs[i]), BOB);
-	}
-}
-
-void initialize_parties(Float * alice, Float * bob, string inputs[], int input_len) {
-	for (int i = 0; i < input_len; ++i) {
-		alice[i] = Float(stoi(inputs[i]), ALICE);
-	}
-
-	for (int i = 0; i < input_len; ++i) {
-		bob[i] = Float(stoi(inputs[i]), BOB);
-	}
-}
-
 void initialize_extremeties(Integer &max_x, Integer &min_x, Integer &max_y, Integer &min_y) {
 	max_x = Integer(BITSIZE, numeric_limits<int>::min(), PUBLIC);
 	min_x = Integer(BITSIZE, numeric_limits<int>::max(), PUBLIC);
@@ -160,9 +138,9 @@ void reveal_hist2d(Integer* hist2d, int num_bins_x, int num_bins_y) {
  * being a count. In the feature this could be any sort of aggregation ig, like in xtabs.
  */
 template<typename T>
-void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
-	T *a = new T[input_len];
-	T *b = new T[input_len];
+void test_hist2d(int party, int input_size, int num_bins_x=NUM_BINS_X, int num_bins_y=NUM_BINS_Y) {
+	T *a = new T[input_size];
+	T *b = new T[input_size];
 
 	int num_edges_x = num_bins_x + 1;
 	int num_edges_y = num_bins_y + 1;
@@ -173,7 +151,7 @@ void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int 
 	Integer bins_y[num_bins_y];
 	Integer hist2d[num_bins_y * num_bins_x];
 
-	initialize_parties(a, b, inputs, input_len);
+	utils::initialize_parties<T>(party, a, b, input_size);
 
 	for (int i = 0; i < num_bins_x; ++i) {
 		bins_x[i] = Integer(BITSIZE, i , PUBLIC);
@@ -194,14 +172,14 @@ void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int 
 	T min_y;
 	initialize_extremeties(max_x, min_x, max_y, min_y);
 	
-	calc_extremeties(a, input_len, min_x, max_x);
-	calc_extremeties(b, input_len, min_y, max_y);
+	calc_extremeties(a, input_size, min_x, max_x);
+	calc_extremeties(b, input_size, min_y, max_y);
 
 	linspace(bin_edges_x, num_edges_x, min_x, max_x);
 	linspace(bin_edges_y, num_edges_y, min_y, max_y);
 
 	Integer zero(BITSIZE, 0);
-	for (int i = 0; i < input_len; ++i) {
+	for (int i = 0; i < input_size; ++i) {
 		T x_val = a[i];
 		T y_val = b[i];
 		Integer x_bin(BITSIZE, 0, PUBLIC);
@@ -235,9 +213,9 @@ void test_hist2d(string inputs[], int input_len, int num_bins_x=NUM_BINS_X, int 
 
 
 int main(int argc, char **argv) {
-	if (argc != 5 && argc != 6) {
-		cout << "Usage for Alice (server): <program> 1 <port> <mode> <input file>" << endl;
-		cout << "Usage for Bob (client): <program> 2 <port> <ip> <mode> <input file>" << endl;
+	if (argc != 6 && argc != 7) {
+		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <mode> <input_dir>" << endl;
+		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <mode> <input_dir>" << endl;
 		return 0;
 	}
     
@@ -246,36 +224,20 @@ int main(int argc, char **argv) {
 	// Parse the IP address if Bob (client), otherwise set to nullptr since Alice (server) doesn't need it
 	char * ip = nullptr;
 	if(party == BOB) ip = argv[3];
+	int input_size = atoi(argv[argc - 3]);
 	char* mode = argv[argc - 2];
-	char* filename = argv[argc - 1];
-	
+	utils::set_directory(argv[argc - 1]);
+
 	HighSpeedNetIO * io = new HighSpeedNetIO(ip, port, port + 1);
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
-	
-	ifstream infile(filename);
-	if (!infile.is_open()) {
-        cerr << "Failed to open file: " << filename << endl;
-		finalize_semi_honest();
-		delete io;
-		return 1;
-    }
-	
-	vector<string> inputs;
-	string line;
-	while(getline(infile, line)) {
-		inputs.push_back(line);
-	}
-	infile.close();
-
-	cout << "Number of elements: " << inputs.size() << endl;
 
 	if (mode[0] == 'i') {
 		cout << "Running integer mode..." << endl;
-		utils::time_it(test_hist2d<Integer>, inputs.data(), inputs.size(), NUM_BINS_X, NUM_BINS_Y);
+		utils::time_it(test_hist2d<Integer>, party, input_size, NUM_BINS_X, NUM_BINS_Y);
 	} else {
 		cout << "Running float mode..." << endl;
-		utils::time_it(test_hist2d<Float>, inputs.data(), inputs.size(), NUM_BINS_X, NUM_BINS_Y);
+		utils::time_it(test_hist2d<Float>, party, input_size, NUM_BINS_X, NUM_BINS_Y);
 	}
 
 	finalize_semi_honest();

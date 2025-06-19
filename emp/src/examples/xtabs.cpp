@@ -19,34 +19,7 @@
 using namespace emp;
 using namespace std;
 
-const int BITSIZE = 32;
 const int CAT_LEN = 4;	// For now, the number of categories is fixed to 4 (0, 1, 2, 3)
-
-
-const std::string& get_directory() {
-    static std::string directory;
-    return directory;
-}
-
-void set_directory(const std::string& dir) {
-    static bool is_set = false;
-    if (is_set) {
-        throw std::runtime_error("Directory already set");
-    }
-    const_cast<std::string&>(get_directory()) = dir;
-    is_set = true;
-}
-
-
-ifstream get_input_file(char col) {
-	string file_path = get_directory() + "/" + col + ".dat";
-	ifstream infile(file_path);
-	if (!infile.is_open()) {
-		cerr << "Failed to open file: " << file_path << endl;
-		exit(1);
-	}
-	return infile;
-}
 
 
 void initialize_groupby_inputs(int party, Integer *group_by, int input_size, char* agg_cols) {
@@ -66,7 +39,7 @@ void initialize_groupby_inputs(int party, Integer *group_by, int input_size, cha
 
 	for (int i = 0; i < agg_cols_len; i += STEP) {
 		if (agg_cols[i] == party_char) {
-			ifstream infile = get_input_file(agg_cols[i + 1]);
+			ifstream infile = utils::get_input_file(agg_cols[i + 1]);
 			string line;
 
 			for (int j = 0; j < input_size; ++j) {
@@ -99,7 +72,7 @@ void initialize_values(int party, Integer *values, int input_size, char* value_c
 	}
 	
 	if (value_col[0] == party_char) {
-		ifstream infile = get_input_file(value_col[1]);
+		ifstream infile = utils::get_input_file(value_col[1]);
 		string line;
 		
 		for (int j = 0; j < input_size; ++j) {
@@ -128,7 +101,7 @@ void initialize_values(int party, Float *values, int input_size, char* value_col
 	}
 	
 	if (value_col[0] == party_char) {
-		ifstream infile = get_input_file(value_col[1]);
+		ifstream infile = utils::get_input_file(value_col[1]);
 		string line;
 		
 		for (int j = 0; j < input_size; ++j) {
@@ -773,8 +746,8 @@ void test_xtabs(int party, int input_size, char aggregation, char* agg_cols, cha
 
 int main(int argc, char **argv) {
 	if (argc != 8 && argc != 9) {
-		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <aggregation> <aggregate_by> <value_col> <input dir>" << endl;
-		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <aggregation> <aggregate_by> <value_col> <input dir>" << endl;
+		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <aggregation> <aggregate_by> <value_col> <input_dir>" << endl;
+		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <aggregation> <aggregate_by> <value_col> <input_dir>" << endl;
 		cout << endl;
 		cout << "Additional argument explanation: " << endl;
 		cout << "<input_size> argument is the number of elements that will be read in each file (e.g. 1000)" << endl;
@@ -795,7 +768,7 @@ int main(int argc, char **argv) {
 	char* aggregation = argv[argc - 4];
 	char* agg_cols = argv[argc - 3];
 	char* value_col = argv[argc - 2];
-	set_directory(argv[argc - 1]);
+	utils::set_directory(argv[argc - 1]);
 	
 	HighSpeedNetIO * io = new HighSpeedNetIO(ip, port, port + 1);
 	auto ctx = setup_semi_honest(io, party);

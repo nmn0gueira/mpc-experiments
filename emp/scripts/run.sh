@@ -13,10 +13,10 @@ MILLIONAIRE_INPUT_A=70
 MILLIONAIRE_INPUT_B=20
 XTABS_INPUT_A=$DATA_DIR/xtabs/alice
 XTABS_INPUT_B=$DATA_DIR/xtabs/bob
-LINREG_INPUT_A=$DATA_DIR/linreg/alice/0.dat
-LINREG_INPUT_B=$DATA_DIR/linreg/bob/0.dat
-HIST2D_INPUT_A=$DATA_DIR/hist2d/alice/0.dat
-HIST2D_INPUT_B=$DATA_DIR/hist2d/bob/0.dat
+LINREG_INPUT_A=$DATA_DIR/linreg/alice
+LINREG_INPUT_B=$DATA_DIR/linreg/bob
+HIST2D_INPUT_A=$DATA_DIR/hist2d/alice
+HIST2D_INPUT_B=$DATA_DIR/hist2d/bob
 
 # Additonal parameters
 XTABS_GROUPBY_ONE=a0
@@ -105,8 +105,8 @@ case $program in
         bob_command="./build/bin/xtabs $PARTY_B $PORT $address $input_size $aggregation $groupby $XTABS_VALUE_COLUMN $XTABS_INPUT_B"
         ;;
     "linreg" )
-        alice_command="./build/bin/linreg $PARTY_A $PORT $LINREG_INPUT_A"
-        bob_command="./build/bin/linreg $PARTY_B $PORT $address $LINREG_INPUT_B"
+        alice_command="./build/bin/linreg $PARTY_A $PORT $input_size $LINREG_INPUT_A"
+        bob_command="./build/bin/linreg $PARTY_B $PORT $address $input_size $LINREG_INPUT_B"
         ;;
     "hist2d" )
         mode=$1
@@ -114,8 +114,8 @@ case $program in
             echo "hist2d requires choosing a mode for how the type used for the defined bins ((i)nt or (f)loat)"
             exit 1
         fi
-        alice_command="./build/bin/hist2d $PARTY_A $PORT $mode $HIST2D_INPUT_A"
-        bob_command="./build/bin/hist2d $PARTY_B $PORT $address $mode $HIST2D_INPUT_B"
+        alice_command="./build/bin/hist2d $PARTY_A $PORT $input_size $mode $HIST2D_INPUT_A"
+        bob_command="./build/bin/hist2d $PARTY_B $PORT $address $input_size $mode $HIST2D_INPUT_B"
         ;;
     * )
         echo "Unknown program: $program"

@@ -7,6 +7,7 @@
 #include <utility>
 using namespace std;
 
+const int BITSIZE = 32;
 
 namespace utils {
 
@@ -51,6 +52,72 @@ namespace utils {
 
     }
 
+    const std::string& get_directory() {
+        static std::string directory;
+        return directory;
+    }
+
+    void set_directory(const std::string& dir) {
+        static bool is_set = false;
+        if (is_set) {
+            throw std::runtime_error("Directory already set");
+        }
+        const_cast<std::string&>(get_directory()) = dir;
+        is_set = true;
+    }
+
+
+    ifstream get_input_file(char col) {
+        string file_path = get_directory() + "/" + col + ".dat";
+        ifstream infile(file_path);
+        if (!infile.is_open()) {
+            cerr << "Failed to open file: " << file_path << endl;
+            exit(1);
+        }
+        return infile;
+    }
+
+    void initialize_values(int party, int other_party, Integer * party_values, Integer * other_party_values, int input_size, ifstream & infile, string & line) {
+        for (int i = 0; i < input_size; ++i) {
+            getline(infile, line);
+            party_values[i] = Integer(BITSIZE, stoi(line), party);
+        }
+        for (int i = 0; i < input_size; ++i) {
+            other_party_values[i] = Integer(BITSIZE, 0, other_party);
+        }
+    }
+
+    void initialize_values(int party, int other_party, Float * party_values, Float * other_party_values, int input_size, ifstream & infile, string & line) {
+        for (int i = 0; i < input_size; ++i) {
+            getline(infile, line);
+            party_values[i] = Float(stof(line), party);
+        }
+        for (int i = 0; i < input_size; ++i) {
+            other_party_values[i] = Float(0, other_party);
+        }
+    }
+
+    template <typename T>
+    void initialize_parties(int party, T *alice, T *bob, int input_size) {
+        T *current_party_ptr;
+        T *other_party_ptr;
+        int other_party;
+
+        if (party == ALICE) {
+            current_party_ptr = alice;
+            other_party_ptr = bob;
+            other_party = BOB;
+        } else {
+            current_party_ptr = bob;
+            other_party_ptr = alice;
+            other_party = ALICE;
+        }
+
+        ifstream infile = get_input_file('0');
+        string line;
+
+        initialize_values(party, other_party, current_party_ptr, other_party_ptr, input_size, infile, line);
+    }
 }
 
 #endif // UTILS_HPP
