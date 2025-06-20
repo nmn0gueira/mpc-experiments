@@ -8,7 +8,7 @@
  * Note 2: All used columns (which are themselves from different files read) are assumed to have the same number of elements.
  */
 
-#include "emp-sh2pc/emp-sh2pc.h"
+#include "../emp/emp-sh2pc/emp-sh2pc/emp-sh2pc.h"
 #include "../utils.hpp"
 
 

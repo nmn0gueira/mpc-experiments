@@ -1,4 +1,4 @@
-#include "emp-sh2pc/emp-sh2pc.h"
+#include "../emp/emp-sh2pc/emp-sh2pc/emp-sh2pc.h"
 #include "../utils.hpp"
 
 using namespace emp;

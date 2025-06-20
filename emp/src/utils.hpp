@@ -5,7 +5,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "emp-sh2pc/emp-sh2pc.h"
+#include "emp/emp-sh2pc/emp-sh2pc/emp-sh2pc.h"
 #include <chrono>
 #include <iostream>
 #include <utility>

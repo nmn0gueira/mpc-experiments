@@ -3,7 +3,7 @@
  * @brief This prgogram is used for providing a benchmark of a simple linear regression in garbled circuits. Due to the extreme inefficiency of linear regression in garbled 
  * circuits, this program implements a much more limited version of linear regression which provides functionality for only one feature and one label in addition to very basic preprocessing.
  */
-#include "emp-sh2pc/emp-sh2pc.h"
+#include "../emp/emp-sh2pc/emp-sh2pc/emp-sh2pc.h"
 #include "../utils.hpp"
 
 #include <iostream>
