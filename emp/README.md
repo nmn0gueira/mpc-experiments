@@ -11,7 +11,6 @@ Alternatively, you can set up the environment manually on Ubuntu 24.04 with the 
 - cmake
 - build-essential
 - libssl-dev
-- emp-toolkit (emp-tool, emp-ot, emp-sh2pc)
 
 
 ## Compilation
@@ -58,9 +57,9 @@ To run the examples in a Docker environment, you can either build a custom Docke
 
 ## Additional Notes
 - `xtabs`:
-    - The `average` function reveals the sum and count of the values before calculating the averages themselves to avoid working with floats inside the circuit. This is a trade-off between precision and efficiency. An implementation that works with floats is included in the source code but is not used in the example.
+    - The `average` function has two implementations: One that uses integers and reveals the sum and count of the values before calculating the averages themselves to avoid working with floats inside the circuit and another that uses floats and performs the whole computation within the circuit. The first implementation is faster while leaking more information about the data, while the second is slower but more secure.
 - `hist2d`:
-    - The `hist2d` function uses integers for the binning of the data. This may very slightly impact precision loss in binning but proves much more efficient. An implementation that works with floats is included in the source code but is not used in the example.
+    - The `hist2d` function uses integers for the binning of the data. This may very slightly impact precision loss in binning but proves much more efficient. An implementation that works with floats is included as well.
 
 
 ## TBD
@@ -68,7 +67,7 @@ This section includes work that has not been completed yet for this particular f
 
 ### Optimizations
 - `xtabs`: 
-    - The standerd deviation aggregation can be optimized by revealing certain components of the computation or inputting revealed values such as the averages previously computed. Just having the average revealed is already a good optimization as it reduces the amount of floating point operations in the circuit, the main bottleneck of the function.
+    - The standerd deviation aggregation can be optimized by revealing certain components of the computation or inputting revealed values such as the averages previously computed. Just having the average revealed is already a good optimization as it reduces the amount of floating point operations in the circuit (which is the main bottleneck of the function).
 
 ### Additions
 - `ag2pc`:
