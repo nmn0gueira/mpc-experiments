@@ -11,7 +11,7 @@ void initialize_edges(Integer * bin_edges, int num_edges, ifstream & infile, str
 	for (int i = 0; i < num_edges; ++i) {
 		getline(infile, line);
 		int element = stoi(line);
-		if (element < previous) {
+		if (element <= previous) {
 			cerr << "Error: bin edges must be in ascending order." << endl;
 			exit(1);
 		} 	
@@ -25,7 +25,7 @@ void initialize_edges(Float * bin_edges, int num_edges, ifstream & infile, strin
 	for (int i = 0; i < num_edges; ++i) {
 		getline(infile, line);
 		float element = stof(line);
-		if (element < previous) {
+		if (element <= previous) {
 			cerr << "Error: bin edges must be in ascending order." << endl;
 			exit(1);
 		}

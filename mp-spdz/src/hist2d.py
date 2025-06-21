@@ -20,35 +20,33 @@ if not compiler.options.rows:
 def get_bin_edges(values, value_type):
     num_edges = len(values)
     bin_edges = Array(num_edges, value_type)
-
-    previous = values[0]
-    bin_edges[0] = value_type(previous.item())
+    previous = float('-inf')
     
-    for i in range(1, num_edges):
+    for i in range(num_edges):
         if (values[i] <= previous):
             raise ValueError("Bin edges are not in ascending order")
         bin_edges[i] = value_type(values[i].item())
 
-    return bin_edges, num_edges
+    return bin_edges
 
 
 # For some reason using a regular for loop in this function seems to just break the for_range_opt optimization in hist2d making it the same as this version but without setting the budget.
-def digitize(val, bins, bin_edges, num_edges, secret_type):
+def digitize(val, bins, bin_edges, secret_type):
     found_index = secret_type(0)
-    bin_to_index = secret_type(0)
+    bin_index = secret_type(0)
     
-    @for_range_opt(1, num_edges)
+    @for_range_opt(1, bin_edges.shape[0])
     def _(i):
     #for i in range(1, num_edges):  
         leq = val <= bin_edges[i]
         
         select = mux(found_index.bit_not(), leq, ZERO)
-        bin_to_index.update(mux(select, bins[i-1], bin_to_index))
+        bin_index.update(mux(select, bins[i-1], bin_index))
 
         # Only updates found index the first time
         found_index.update(mux(found_index.bit_not(), select, found_index))
 
-    return bin_to_index
+    return bin_index
 
 
 def mux(cond, trueVal, falseVal):
@@ -58,11 +56,11 @@ def mux(cond, trueVal, falseVal):
 def hist_2d_arithmetic(max_rows, edges_df, types, binary):
     secret_type, clear_type = types
 
-    bin_edges_x, num_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, clear_type)
-    bin_edges_y, num_edges_y = get_bin_edges(edges_df.iloc[:, 1].values, clear_type)
+    bin_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, clear_type)
+    bin_edges_y = get_bin_edges(edges_df.iloc[:, 1].values, clear_type)
 
-    num_bins_x = num_edges_x - 1
-    num_bins_y = num_edges_y - 1
+    num_bins_x = bin_edges_x.shape[0] - 1
+    num_bins_y = bin_edges_y.shape[0] - 1
 
     alice = Array(max_rows, secret_type)
     bob = Array(max_rows, secret_type)
@@ -86,8 +84,8 @@ def hist_2d_arithmetic(max_rows, edges_df, types, binary):
         x_val = alice[i]
         y_val = bob[i]
 
-        bin_index_x = digitize(x_val, bins_x, bin_edges_x, num_edges_x, sint)
-        bin_index_y = digitize(y_val, bins_y, bin_edges_y, num_edges_y, sint)
+        bin_index_x = digitize(x_val, bins_x, bin_edges_x, sint)
+        bin_index_y = digitize(y_val, bins_y, bin_edges_y, sint)
 
         for y in range(num_bins_y):
             for x in range(num_bins_x):
@@ -105,13 +103,13 @@ def hist_2d_arithmetic(max_rows, edges_df, types, binary):
 
 
 
-def hist_2d_bin(max_rows, edges_df, secret_type, binary):
+def hist_2d_bin(max_rows, edges_df, secret_type):
     # In binary circuits the only clear type is cbits which does not serve very well for our purposes
-    bin_edges_x, num_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, secret_type)
-    bin_edges_y, num_edges_y = get_bin_edges(edges_df.iloc[:, 1].values, secret_type)
+    bin_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, secret_type)
+    bin_edges_y = get_bin_edges(edges_df.iloc[:, 1].values, secret_type)
 
-    num_bins_x = num_edges_x - 1
-    num_bins_y = num_edges_y - 1
+    num_bins_x = bin_edges_x.shape[0] - 1
+    num_bins_y = bin_edges_y.shape[0] - 1
 
     alice = Array(max_rows, secret_type)
     bob = Array(max_rows, secret_type)
@@ -135,8 +133,8 @@ def hist_2d_bin(max_rows, edges_df, secret_type, binary):
         x_val = alice[i]
         y_val = bob[i]
 
-        bin_index_x = digitize(x_val, bins_x, bin_edges_x, num_edges_x, SIV32)
-        bin_index_y = digitize(y_val, bins_y, bin_edges_y, num_edges_y, SIV32)
+        bin_index_x = digitize(x_val, bins_x, bin_edges_x, SIV32)
+        bin_index_y = digitize(y_val, bins_y, bin_edges_y, SIV32)
 
         for y in range(num_bins_y):
             for x in range(num_bins_x):
@@ -174,17 +172,17 @@ def main():
             print("-----------------------------------------------------------------")
             print("Compiling for 2D Histogram using fixed-point numbers (sbitfixvec)")
             print("-----------------------------------------------------------------")
-            hist_2d_bin(max_rows, edges_df, sbitfixvec, binary)
+            hist_2d_bin(max_rows, edges_df, sbitfixvec)
 
         elif integer:
             print("-------------------------------------------------------------")
             print("Compiling for 2D Histogram using integer numbers (sbitintvec)")
             print("-------------------------------------------------------------")
-            hist_2d_bin(max_rows, edges_df, SIV32, binary)
+            hist_2d_bin(max_rows, edges_df, SIV32)
 
     else:
-        ZERO = sint(0)  # TODO Change to cint if there is no leakage for slightly more performance and slightly less comm.
-        ONE = sint(1)
+        ZERO = cint(0)
+        ONE = cint(1)
         if fixed:
             compiler.prog.use_trunc_pr = True
             print("-----------------------------------------------------------")
