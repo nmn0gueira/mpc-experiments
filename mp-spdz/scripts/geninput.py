@@ -8,16 +8,19 @@ np.set_printoptions(legacy='1.25')
 
 BASE_DIR = "data/"
 PARTY_ALICE = "alice"
-PARTY_BOB= "bob"
+PARTY_BOB = "bob"
+PARTY_PUBLIC = "public"
 
 def create_dirs(program):
     dirname = BASE_DIR + program + "/"
     alice_dir = dirname + PARTY_ALICE
     bob_dir = dirname + PARTY_BOB
-    if not os.path.exists(alice_dir) or not os.path.exists(bob_dir):
+    public_dir = dirname + PARTY_PUBLIC
+    if not os.path.exists(alice_dir) or not os.path.exists(bob_dir) or not os.path.exists(public_dir):
         try:
             os.makedirs(alice_dir)
             os.makedirs(bob_dir)
+            os.makedirs(public_dir)
         except OSError as e:
             if e.errno != errno.EEXIST: raise
 
@@ -269,21 +272,26 @@ def print_sgd_linreg(features, labels):
 
 
 def gen_hist2d_input(l):
-    values_a, values_b = gen_input(32, l)
-
-    print_hist2d(values_a, values_b)
-    return (values_a,), (values_b,)
-
-
-def print_hist2d(values_a, values_b):
     NUM_BINS_X = 5
     NUM_BINS_Y = 5
-    input_size = len(values_a)
+
+    values_a, values_b = gen_input(32, l) 
 
     bin_edges_x = np.linspace(min(values_a), max(values_a), NUM_BINS_X + 1)
     bin_edges_y = np.linspace(min(values_b), max(values_b), NUM_BINS_Y + 1)
 
-    histogram = [[0] * (NUM_BINS_Y) for _ in range(NUM_BINS_X)]
+    print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y)
+    write_to_csv("hist2d", PARTY_PUBLIC, bin_edges_x, bin_edges_y)
+
+    return values_a, values_b
+
+
+def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
+    input_size = len(values_a)
+    num_bins_x = len(bin_edges_x) - 1
+    num_bins_y = len(bin_edges_y) - 1
+
+    histogram = [[0] * num_bins_y for _ in range(num_bins_x)]
     
     for i in range(input_size):
         x_val = values_a[i]

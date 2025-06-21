@@ -254,14 +254,17 @@ def gen_hist2d_input(l):
 
     bin_edges_x = np.linspace(min(values_a), max(values_a), NUM_BINS_X + 1)
     bin_edges_y = np.linspace(min(values_b), max(values_b), NUM_BINS_Y + 1)
-    histogram = [[0] * (NUM_BINS_Y) for _ in range(NUM_BINS_X)]
 
-    print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y, histogram)
-    return (values_a, bin_edges_x, bin_edges_y), (values_b, bin_edges_x, bin_edges_y)
+    print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y)
+    return (values_a, bin_edges_x, bin_edges_y), (values_b, bin_edges_x, bin_edges_y)   # Would look better to have the edges as a shared public input but oh well
 
 
-def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y, histogram):
+def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
     input_size = len(values_a)
+    num_bins_x = len(bin_edges_x) - 1
+    num_bins_y = len(bin_edges_y) - 1
+
+    histogram = [[0] * num_bins_y for _ in range(num_bins_x)]
     
     for i in range(input_size):
         x_val = values_a[i]
