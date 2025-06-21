@@ -79,14 +79,12 @@ def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
 
 
-def hist_2d(max_rows, secret_type):
+def hist_2d(max_rows, secret_type, binary):
     alice = Array(max_rows, secret_type)
     bob = Array(max_rows, secret_type)
 
-    @for_range_opt(max_rows)
-    def _(i):
-        alice[i] = secret_type.get_input_from(0)
-        bob[i] = secret_type.get_input_from(1)
+    alice.input_from(0, binary=binary)
+    bob.input_from(1, binary=binary)
     
     hist2d = Matrix(NUM_BINS_Y, NUM_BINS_X, sint)
     hist2d.assign_all(0)
@@ -149,6 +147,8 @@ def main():
     ZERO = sint(0)
     ONE = sint(1)
 
+    binary = 'binary' in compiler.prog.args
+
     max_rows = compiler.options.rows
 
     if 'fix' in compiler.prog.args:
@@ -156,19 +156,19 @@ def main():
         print("-----------------------------------------------------------")
         print("Compiling for 2D Histogram using fixed-point numbers (sfix)")
         print("-----------------------------------------------------------")
-        hist_2d(max_rows, sfix)
+        hist_2d(max_rows, sfix, binary)
     
     elif 'float' in compiler.prog.args:
         print("----------------------------------------------------------------")
         print("Compiling for 2D Histogram using floating-point numbers (sfloat)")
         print("----------------------------------------------------------------")
-        hist_2d(max_rows, sfloat)
+        hist_2d(max_rows, sfloat, binary)
 
     elif 'int' in compiler.prog.args:
         print("-----------------------------------------------------------------")
         print("Compiling for 2D Histogram using integer numbers")
         print("-----------------------------------------------------------------")
-        hist_2d(max_rows, sint)
+        hist_2d(max_rows, sint, binary)
 
     else:
         raise ValueError("Please specify the type of numbers to use: 'fix', 'float', or 'int'.")

@@ -26,14 +26,14 @@ def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
 
 
-def xtabs_sum(secret_type, oram):
+def xtabs_sum(secret_type, oram, binary):
     max_rows = compiler.options.rows
 
     alice = Array(max_rows, secret_type)
     bob = Array(max_rows, secret_type)
 
-    alice.input_from(0)
-    bob.input_from(1)
+    alice.input_from(0, binary=binary)
+    bob.input_from(1, binary=binary)
 
     if oram:
         sums = OptimalORAM(CAT_LEN, secret_type)
@@ -66,12 +66,11 @@ def xtabs_sum(secret_type, oram):
 #@compiler.register_function(function_name)
 @compiler.register_function("xtabs")
 def main():
-    binary = compiler.prog.options.binary != 0 # This indicates if the program is being compiled for binary circuits
-    oram = 'oram' in compiler.prog.args
-
+    oram = 'oram' in compiler.prog.args # The binary circuit ORAM code uses an optimization that reduces the cost of bit-vector AND in the context of dishonest-majority semi-honest computation
+    binary = 'binary' in compiler.prog.args
     secret_type = None
 
-    if binary:
+    if compiler.prog.options.binary != 0: # If program is being compiled for binary circuits
         print("----------------------------------------------------------------")
         print("Compiling for binary circuits")
         print("----------------------------------------------------------------")
@@ -80,7 +79,7 @@ def main():
     else:
         secret_type = sint
     
-    xtabs_sum(secret_type, oram)
+    xtabs_sum(secret_type, oram, binary)
 
 
 if __name__ == "__main__":

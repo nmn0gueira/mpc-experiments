@@ -3,9 +3,7 @@ from Compiler.library import print_ln, for_range_opt, for_range, for_range_paral
 from Compiler.compilerLib import Compiler
 from Compiler import ml
 import re
-
 #import torch.nn as nn
-
 
 usage = "usage: %prog [options] [args]"
 compiler = Compiler(usage=usage)
@@ -29,7 +27,7 @@ if not compiler.options.rows:
     compiler.parser.error("--rows required")
 
 
-def simple_linreg():
+def simple_linreg(binary):
     """
     Simple linreg where Alice holds the feature column and Bob holds the target column. Purely for demonstration purposes.
     """
@@ -38,10 +36,11 @@ def simple_linreg():
     alice = Array(max_rows, sfix)
     bob = Array(max_rows, sfix)
 
-    @for_range_opt(max_rows)
-    def _(i):
-        alice[i] = sfix.get_input_from(0)
-        bob[i] = sfix.get_input_from(1)
+    # Change precision to avoid overflows
+    sfix.set_precision(16, 47)  # Needs to compile with -R 192.
+
+    alice.input_from(0, binary=binary)
+    bob.input_from(1, binary=binary)
 
     sum_x = sfix(0)
     sum_y = sfix(0)
@@ -58,10 +57,10 @@ def simple_linreg():
     beta_1 = (max_rows * sum_xy - sum_x * sum_y) / (max_rows * sum_x2 - sum_x * sum_x)
     beta_0 = (sum_y - beta_1 * sum_x) / max_rows
 
-    print_ln("Sum of X: %s", sum_x.reveal())
-    print_ln("Sum of Y: %s", sum_y.reveal())
-    print_ln("Sum of XY: %s", sum_xy.reveal())
-    print_ln("Sum of X^2: %s", sum_x2.reveal())
+    #print_ln("Sum of X: %s", sum_x.reveal())
+    #print_ln("Sum of Y: %s", sum_y.reveal())
+    #print_ln("Sum of XY: %s", sum_xy.reveal())
+    #print_ln("Sum of X^2: %s", sum_x2.reveal())
 
     print_ln("Intercept (beta_0): %s", beta_0.reveal())
     print_ln("Slope (beta_1): %s", beta_1.reveal())
@@ -85,11 +84,11 @@ def parse_columns(format_str):
         raise ValueError(f"Invalid format: {format_str}")
     
 
-def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
+def get_X_y(alice_columns, bob_columns, rows_train, rows_test, binary):
     num_features = alice_columns + bob_columns
 
-    print("Number of features for Alice: %s, Number of features for Bob: %s", alice_columns, bob_columns)
-
+    print(f"Number of features for Alice: {alice_columns}")
+    print(f"Number of features for Bob: {bob_columns}")
 
     X_train = Matrix(rows_train, num_features, sfix)
     X_test = Matrix(rows_test, num_features, sfix)
@@ -98,28 +97,28 @@ def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
     for _ in range(alice_columns):
         @for_range_opt(rows_train)
         def _(i):
-            X_train[i][current_train_column] = sfix.get_input_from(0)
+            X_train[i][current_train_column] = sfix.get_input_from(0, binary=binary)
         
         current_train_column += 1
 
     for _ in range(bob_columns):
         @for_range_opt(rows_train)
         def _(i):
-            X_train[i][current_train_column] = sfix.get_input_from(1)
+            X_train[i][current_train_column] = sfix.get_input_from(1, binary=binary)
 
         current_train_column += 1
 
     for _ in range(alice_columns):
         @for_range_opt(rows_test)
         def _(i):
-            X_test[i][current_test_column] = sfix.get_input_from(0)
+            X_test[i][current_test_column] = sfix.get_input_from(0, binary=binary)
 
         current_test_column += 1
 
     for _ in range(bob_columns):
         @for_range_opt(rows_test)
         def _(i):
-            X_test[i][current_test_column] = sfix.get_input_from(1)
+            X_test[i][current_test_column] = sfix.get_input_from(1, binary=binary)
 
         current_test_column += 1
     
@@ -128,15 +127,15 @@ def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
     y_train = Array(rows_train, sfix)
     y_test = Array(rows_test, sfix)
 
-    y_train.input_from(label_holder)
-    y_test.input_from(label_holder)
+    y_train.input_from(label_holder, binary=binary)
+    y_test.input_from(label_holder, binary=binary)
 
     return X_train, X_test, y_train, y_test
 
 
 # To optimize memory usage, the features argument should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
 # storing an additional matrix for alice's and bob's values
-def sgd_linreg():
+def sgd_linreg(binary):
     if not compiler.options.features or not compiler.options.label:
         compiler.parser.error("--features and --label required")
 
@@ -145,7 +144,7 @@ def sgd_linreg():
 
     alice_columns, bob_columns = parse_columns(compiler.options.features)
 
-    X_train, X_test, y_train, y_test = get_X_y(alice_columns, bob_columns, rows_train, rows_test)    
+    X_train, X_test, y_train, y_test = get_X_y(alice_columns, bob_columns, rows_train, rows_test, binary)    
 
     """ for i in range(X_train.shape[0]):
         for j in range(X_train.shape[1]):
@@ -201,18 +200,19 @@ def sgd_linreg():
 @compiler.register_function('linreg')
 def main():
     compiler.prog.use_trunc_pr = True
+    binary = 'binary' in compiler.prog.args
 
     if "simple" in compiler.prog.args:
         print("-----------------------------------------")
         print("Compiling for simple linear regression")
         print("-----------------------------------------")
-        simple_linreg()
+        simple_linreg(binary)
         return
 
     print("-----------------------------------------")
     print("Compiling for linear regression using SGD")
     print("-----------------------------------------")
-    sgd_linreg()
+    sgd_linreg(binary)
     
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ set -e
 
 split=false
 binary=false
+type=""
 columns=""
 by_column=false
 
@@ -19,8 +20,9 @@ usage() {
     echo "Options:"
     echo "  -s, --split         Split the input data into multiple files (e.g., train data and test data) (default: false)"
     echo "  -b, --binary        Use binary format for the input data (default: false)"
+    echo "  -y, --by_column     Store input by column instead of by row (used for programs that read input by column instead of by row such as 'linreg' and 'xtabs')"
+    echo "  -t, --type <type>   Specify the type of input data (e.g., sfix to store as secret fixed-point)"
     echo "  -c <columns>        Specify columns to copy (e.g., a0b1 for alice's column 0 and bob's column 1)"
-    echo "  --by_column         Store input by column instead of by row (used for programs that read input by column instead of by row such as 'linreg' and 'xtabs')"
     echo "  -v, --verbose       Enable verbose output (compile output will be shown)"
     echo "  -h, --help          Show this help message"
     echo ""
@@ -43,19 +45,23 @@ csv2spdz() {
     if $binary; then
         binary_option="binary"
     fi
-    columns_option=""
-    if [[ -n "$columns" ]]; then
-        columns_option="--columns $columns"
-    fi
     by_column_option=""
     if $by_column; then
         by_column_option="by_column"
     fi
+    type_option=""
+    if [[ -n "$type" ]]; then
+        type_option="--type $type"
+    fi
+    columns_option=""
+    if [[ -n "$columns" ]]; then
+        columns_option="--columns $columns"
+    fi   
 
     if $verbose; then
-        python csv2spdz.py party0 party1 $split_option $binary_option $columns_option $by_column_option
+        python3 csv2spdz.py party0 party1 $split_option $binary_option $by_column_option $type_option $columns_option
     else
-        python csv2spdz.py party0 party1 $split_option $binary_option $columns_option $by_column_option > /dev/null
+        python3 csv2spdz.py party0 party1 $split_option $binary_option $by_column_option $type_option $columns_option > /dev/null
     fi
 
 }
@@ -70,6 +76,18 @@ while [[ $# -gt 0 ]]; do
             binary=true
             shift
             ;;
+        -y|--by_column)
+            by_column=true
+            shift
+            ;;
+        -t|--type)
+            if [[ -z "$2" ]]; then
+                echo "Error: --type requires an argument."
+                usage
+            fi
+            type="$2"
+            shift 2
+            ;;
         -c|--columns)
             if [[ -z "$2" ]]; then
                 echo "Error: --columns requires an argument."
@@ -77,10 +95,6 @@ while [[ $# -gt 0 ]]; do
             fi
             columns="$2"
             shift 2
-            ;;
-        --by_column)
-            by_column=true
-            shift
             ;;
         -v|--verbose)
             verbose=true
@@ -109,7 +123,7 @@ fi
 shift
 
 # Actual data gen
-python scripts/geninput.py -e $program_name $@
+python3 scripts/geninput.py -e $program_name $@
 
 # Copy to mp-spdz dir and convert to mp-spdz input
 cp -r $generated_data_dir/$program_name/* $destination_dir/

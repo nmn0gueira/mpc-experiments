@@ -22,6 +22,7 @@ services:
         # Program arguments
         src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_ALICE}
+        input_options: party0 ${INPUT_OPTIONS_GLOBAL} ${INPUT_OPTIONS_ALICE}
       cache_from:
         - mpspdz:${MACHINE}
         - mpspdz:buildenv
@@ -47,6 +48,7 @@ services:
         # Program arguments
         src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_BOB}
+        input_options: party1 ${INPUT_OPTIONS_GLOBAL} ${INPUT_OPTIONS_BOB}
       cache_from:
         - mpspdz:${MACHINE}
         - mpspdz:buildenv
@@ -75,6 +77,7 @@ services:
         # Program arguments
         src: ${SRC}
         compile_options: ${COMPILE_OPTIONS_GLOBAL} ${COMPILE_OPTIONS_DEALER}
+        input_options: ""
       cache_from:
         - mpspdz:${MACHINE}
         - mpspdz:buildenv
