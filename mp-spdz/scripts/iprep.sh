@@ -3,8 +3,6 @@
 set -e
 
 split=false
-binary=false
-type=""
 columns=""
 by_column=false
 
@@ -19,9 +17,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -s, --split         Split the input data into multiple files (e.g., train data and test data) (default: false)"
-    echo "  -b, --binary        Use binary format for the input data (default: false)"
     echo "  -y, --by_column     Store input by column instead of by row (used for programs that read input by column instead of by row such as 'linreg' and 'xtabs')"
-    echo "  -t, --type <type>   Specify the type of input data (e.g., sfix to store as secret fixed-point)"
     echo "  -c <columns>        Specify columns to copy (e.g., a0b1 for alice's column 0 and bob's column 1)"
     echo "  -v, --verbose       Enable verbose output (compile output will be shown)"
     echo "  -h, --help          Show this help message"
@@ -41,17 +37,9 @@ csv2spdz() {
     if $split; then
         split_option="split"
     fi
-    binary_option=""
-    if $binary; then
-        binary_option="binary"
-    fi
     by_column_option=""
     if $by_column; then
         by_column_option="by_column"
-    fi
-    type_option=""
-    if [[ -n "$type" ]]; then
-        type_option="--type $type"
     fi
     columns_option=""
     if [[ -n "$columns" ]]; then
@@ -59,9 +47,9 @@ csv2spdz() {
     fi   
 
     if $verbose; then
-        python3 csv2spdz.py party0 party1 $split_option $binary_option $by_column_option $type_option $columns_option
+        python3 csv2spdz.py party0 party1 $split_option $by_column_option $columns_option
     else
-        python3 csv2spdz.py party0 party1 $split_option $binary_option $by_column_option $type_option $columns_option > /dev/null
+        python3 csv2spdz.py party0 party1 $split_option $by_column_option $columns_option > /dev/null
     fi
 
 }
@@ -72,21 +60,9 @@ while [[ $# -gt 0 ]]; do
             split=true
             shift
             ;;
-        -b|--binary)
-            binary=true
-            shift
-            ;;
         -y|--by_column)
             by_column=true
             shift
-            ;;
-        -t|--type)
-            if [[ -z "$2" ]]; then
-                echo "Error: --type requires an argument."
-                usage
-            fi
-            type="$2"
-            shift 2
             ;;
         -c|--columns)
             if [[ -z "$2" ]]; then

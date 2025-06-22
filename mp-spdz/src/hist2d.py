@@ -53,7 +53,7 @@ def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
 
 
-def hist_2d_arithmetic(max_rows, edges_df, types, binary):
+def hist_2d_arithmetic(max_rows, edges_df, types):
     secret_type, clear_type = types
 
     bin_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, clear_type)
@@ -65,8 +65,8 @@ def hist_2d_arithmetic(max_rows, edges_df, types, binary):
     alice = Array(max_rows, secret_type)
     bob = Array(max_rows, secret_type)
 
-    alice.input_from(0, binary=binary)
-    bob.input_from(1, binary=binary)
+    alice.input_from(0)
+    bob.input_from(1)
     
     hist2d = Matrix(num_bins_y, num_bins_x, sint)
     hist2d.assign_all(0)
@@ -158,7 +158,6 @@ def main():
 
     fixed = 'fix' in compiler.prog.args
     integer = 'int' in compiler.prog.args
-    binary = 'binary' in compiler.prog.args
     max_rows = compiler.options.rows
 
     edges_df = pd.read_csv('Player-Data/public/data.csv')
@@ -188,13 +187,13 @@ def main():
             print("-----------------------------------------------------------")
             print("Compiling for 2D Histogram using fixed-point numbers (sfix)")
             print("-----------------------------------------------------------")
-            hist_2d_arithmetic(max_rows, edges_df, (sfix, cfix), binary)
+            hist_2d_arithmetic(max_rows, edges_df, (sfix, cfix))
 
         elif integer:
             print("-------------------------------------------------------")
             print("Compiling for 2D Histogram using integer numbers (sint)")
             print("-------------------------------------------------------")
-            hist_2d_arithmetic(max_rows, edges_df, (sint, cint), binary)
+            hist_2d_arithmetic(max_rows, edges_df, (sint, cint))
     
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 from Compiler.library import print_ln, for_range_opt
 from Compiler.compilerLib import Compiler
-from Compiler.types import sint, sfix, Matrix, Array
-from Compiler.GC.types import sbits, sbitintvec, sbitvec
+from Compiler.types import sint, cint, Array
+from Compiler.GC.types import sbitintvec
 from Compiler.oram import OptimalORAM
+
 
 CAT_LEN = 4
 
@@ -14,7 +15,7 @@ compiler.parser.add_option("--rows", dest="rows", type=int, help="Number of rows
 
 compiler.parser.add_option("--aggregation", dest="aggregation", type=str, help="Type of aggregation to be performed (sum, average, freq(uencies), st(d)ev)")
 compiler.parser.add_option("--group_by", dest="group_by", type=str, help="Columns to group by (2 max) (e.g ab for Alice's first column and Bob's first column")
-compiler.parser.add_option("--value_col", dest="label", type=str, help="Value column (not needed for mode and freq.) (e.g b for Bob's column)")
+compiler.parser.add_option("--value_col", dest="value_col", type=str, help="Value column (not needed for mode and freq.) (e.g b for Bob's column)")
 
 compiler.parse_args()
 if not compiler.options.rows:
@@ -26,40 +27,77 @@ def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
 
 
-def xtabs_sum(secret_type, oram, binary):
+def get_arrays(rows, group_by_col, value_col, secret_type):
+    group_by_party = 0 if group_by_col == 'a' else 1
+    value_party = 0 if value_col == 'a' else 1
+    
+    group_by = Array(rows, sint)
+    value = Array(rows, secret_type)
+
+    group_by.input_from(group_by_party)
+    value.input_from(value_party)
+
+    return group_by, value
+
+
+def get_arrays_bin(rows, group_by_col, value_col, secret_type, oram):
+    group_by_party = 0 if group_by_col == 'a' else 1
+    value_party = 0 if value_col == 'a' else 1
+    
+    group_by = OptimalORAM(rows, sbitintvec) if oram else Array(rows, sbitintvec)
+    value = Array(rows, secret_type)
+
+    group_by.input_from(group_by_party)
+    value.input_from(value_party)
+
+    return group_by, value
+
+
+def xtabs_sum1(secret_type, cat_len=CAT_LEN):
     max_rows = compiler.options.rows
+    group_by, values = get_arrays(max_rows, 
+                                  compiler.options.group_by, 
+                                  compiler.options.value_col,
+                                  secret_type)
 
-    alice = Array(max_rows, secret_type)
-    bob = Array(max_rows, secret_type)
+    sums = Array(cat_len, secret_type)
+    categories = Array(cat_len, cint)
 
-    alice.input_from(0, binary=binary)
-    bob.input_from(1, binary=binary)
+    for i in range(cat_len):
+        sums[i] = secret_type(0)
+        categories[i] = cint(i)
 
-    if oram:
-        sums = OptimalORAM(CAT_LEN, secret_type)
-        
-        for i in range(CAT_LEN):
-            sums[i] = secret_type(0)
-        
-        @for_range_opt(max_rows)
-        def _(i):
-            sums[alice[i]] += bob[i]
-
-    else:
-        sums = Array(CAT_LEN, secret_type)
-        categories = Array(CAT_LEN, secret_type)
-
-        for i in range(CAT_LEN):
-            sums[i] = secret_type(0)
-            categories[i] = secret_type(i)
-
-        @for_range_opt(max_rows)
-        def _(i):
-            for j in range(CAT_LEN):
-                sums[j] = mux(alice[i] == categories[j], sums[j] + bob[i], sums[j])
+    @for_range_opt(max_rows)
+    def _(i):
+        for j in range(cat_len):
+            sums[j] = mux(group_by[i] == categories[j], sums[j] + values[i], sums[j])
 
     
-    for i in range(CAT_LEN):
+    for i in range(cat_len):
+        print_ln("Sum %s: %s", i, sums[i].reveal())
+
+
+def xtabs_sum2(secret_type, cat_len=CAT_LEN):
+    max_rows = compiler.options.rows
+    group_by, values = get_arrays(max_rows, 
+                                  compiler.options.group_by, 
+                                  compiler.options.value_col,
+                                  secret_type)
+
+    sums = Array(cat_len, secret_type)
+    categories = Array(cat_len, cint)
+
+    for i in range(cat_len):
+        sums[i] = secret_type(0)
+        categories[i] = cint(i)
+
+    @for_range_opt(max_rows)
+    def _(i):
+        for j in range(cat_len):
+            sums[j] = mux(group_by[i] == categories[j], sums[j] + values[i], sums[j])
+
+    
+    for i in range(cat_len):
         print_ln("Sum %s: %s", i, sums[i].reveal())
 
 
@@ -67,7 +105,6 @@ def xtabs_sum(secret_type, oram, binary):
 @compiler.register_function("xtabs")
 def main():
     oram = 'oram' in compiler.prog.args # The binary circuit ORAM code uses an optimization that reduces the cost of bit-vector AND in the context of dishonest-majority semi-honest computation
-    binary = 'binary' in compiler.prog.args
     secret_type = None
 
     if compiler.prog.options.binary != 0: # If program is being compiled for binary circuits
@@ -78,8 +115,7 @@ def main():
 
     else:
         secret_type = sint
-    
-    xtabs_sum(secret_type, oram, binary)
+        xtabs_sum1(secret_type)
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ if not compiler.options.rows:
     compiler.parser.error("--rows required")
 
 
-def simple_linreg(binary):
+def simple_linreg():
     """
     Simple linreg where Alice holds the feature column and Bob holds the target column. Purely for demonstration purposes.
     """
@@ -39,8 +39,8 @@ def simple_linreg(binary):
     # Change precision to avoid overflows
     sfix.set_precision(16, 47)  # Needs to compile with -R 192.
 
-    alice.input_from(0, binary=binary)
-    bob.input_from(1, binary=binary)
+    alice.input_from(0)
+    bob.input_from(1)
 
     sum_x = sfix(0)
     sum_y = sfix(0)
@@ -84,7 +84,7 @@ def parse_columns(format_str):
         raise ValueError(f"Invalid format: {format_str}")
     
 
-def get_X_y(alice_columns, bob_columns, rows_train, rows_test, binary):
+def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
     num_features = alice_columns + bob_columns
 
     print(f"Number of features for Alice: {alice_columns}")
@@ -97,28 +97,28 @@ def get_X_y(alice_columns, bob_columns, rows_train, rows_test, binary):
     for _ in range(alice_columns):
         @for_range_opt(rows_train)
         def _(i):
-            X_train[i][current_train_column] = sfix.get_input_from(0, binary=binary)
+            X_train[i][current_train_column] = sfix.get_input_from(0)
         
         current_train_column += 1
 
     for _ in range(bob_columns):
         @for_range_opt(rows_train)
         def _(i):
-            X_train[i][current_train_column] = sfix.get_input_from(1, binary=binary)
+            X_train[i][current_train_column] = sfix.get_input_from(1)
 
         current_train_column += 1
 
     for _ in range(alice_columns):
         @for_range_opt(rows_test)
         def _(i):
-            X_test[i][current_test_column] = sfix.get_input_from(0, binary=binary)
+            X_test[i][current_test_column] = sfix.get_input_from(0)
 
         current_test_column += 1
 
     for _ in range(bob_columns):
         @for_range_opt(rows_test)
         def _(i):
-            X_test[i][current_test_column] = sfix.get_input_from(1, binary=binary)
+            X_test[i][current_test_column] = sfix.get_input_from(1)
 
         current_test_column += 1
     
@@ -127,15 +127,15 @@ def get_X_y(alice_columns, bob_columns, rows_train, rows_test, binary):
     y_train = Array(rows_train, sfix)
     y_test = Array(rows_test, sfix)
 
-    y_train.input_from(label_holder, binary=binary)
-    y_test.input_from(label_holder, binary=binary)
+    y_train.input_from(label_holder)
+    y_test.input_from(label_holder)
 
     return X_train, X_test, y_train, y_test
 
 
 # To optimize memory usage, the features argument should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
 # storing an additional matrix for alice's and bob's values
-def sgd_linreg(binary):
+def sgd_linreg():
     if not compiler.options.features or not compiler.options.label:
         compiler.parser.error("--features and --label required")
 
@@ -144,7 +144,7 @@ def sgd_linreg(binary):
 
     alice_columns, bob_columns = parse_columns(compiler.options.features)
 
-    X_train, X_test, y_train, y_test = get_X_y(alice_columns, bob_columns, rows_train, rows_test, binary)    
+    X_train, X_test, y_train, y_test = get_X_y(alice_columns, bob_columns, rows_train, rows_test)    
 
     """ for i in range(X_train.shape[0]):
         for j in range(X_train.shape[1]):
@@ -200,19 +200,18 @@ def sgd_linreg(binary):
 @compiler.register_function('linreg')
 def main():
     compiler.prog.use_trunc_pr = True
-    binary = 'binary' in compiler.prog.args
 
     if "simple" in compiler.prog.args:
         print("-----------------------------------------")
         print("Compiling for simple linear regression")
         print("-----------------------------------------")
-        simple_linreg(binary)
+        simple_linreg()
         return
 
     print("-----------------------------------------")
     print("Compiling for linear regression using SGD")
     print("-----------------------------------------")
-    sgd_linreg(binary)
+    sgd_linreg()
     
 
 if __name__ == "__main__":
