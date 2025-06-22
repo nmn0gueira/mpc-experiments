@@ -9,7 +9,6 @@ usage = "usage: %prog [options] [args]"
 compiler = Compiler(usage=usage)
 
 # Options for defining the input matrices and their dimensions
-compiler.parser.add_option("--type", dest="type", type=str, default='sint', help="Type of the input data (default: sint). This is only really required if inputting binary data as sint works for all raw data.")
 compiler.parser.add_option("--columns", dest="columns", type=str, help="Columns to be used")
 
 # Split options
@@ -49,7 +48,7 @@ def csv2spdz(path, party, columns, split, by_column):
         print(f"Input data for party {party}: {df.shape[0]} samples.")
 
     print(f"Data stored by column: {by_column}")
-    print(f"Data type: {compiler.options.type}, Columns: {columns if columns else 'all'}")
+    print(f"Columns: {columns if columns else 'all'}")
     
 
 # Parsing this way will not allow to specify columns with more than one digit, e.g., a10b1 which is irrelevant for now but still

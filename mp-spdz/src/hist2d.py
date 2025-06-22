@@ -53,8 +53,16 @@ def mux(cond, trueVal, falseVal):
     return cond.if_else(trueVal, falseVal)
 
 
-def hist_2d_arithmetic(max_rows, edges_df, types):
-    secret_type, clear_type = types
+def hist_2d(max_rows, edges_df, types):
+    """
+    Computes a 2D histogram from the input data.
+    
+    Parameters:
+    - max_rows: Maximum number of rows in the input data.
+    - edges_df: DataFrame containing the bin edges for both dimensions.
+    - types: Tuple containing the types for secret type used in comparisons, clear type used in comparsions, and secret type for histogram values (which only differs between arithmetic and binary circuits).
+    """
+    secret_type, clear_type, hist_type = types
 
     bin_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, clear_type)
     bin_edges_y = get_bin_edges(edges_df.iloc[:, 1].values, clear_type)
@@ -68,73 +76,24 @@ def hist_2d_arithmetic(max_rows, edges_df, types):
     alice.input_from(0)
     bob.input_from(1)
     
-    hist2d = Matrix(num_bins_y, num_bins_x, sint)
+    hist2d = Matrix(num_bins_y, num_bins_x, hist_type)
     hist2d.assign_all(0)
 
-    bins_x = Array(num_bins_x, sint)
+    bins_x = Array(num_bins_x, hist_type)
     for i in range(num_bins_x):
-        bins_x[i] = sint(i)
+        bins_x[i] = hist_type(i)
 
-    bins_y = Array(num_bins_y, sint)
+    bins_y = Array(num_bins_y, hist_type)
     for i in range(num_bins_y):
-        bins_y[i] = sint(i)
+        bins_y[i] = hist_type(i)
 
     @for_range_opt(max_rows)
     def _(i):
         x_val = alice[i]
         y_val = bob[i]
 
-        bin_index_x = digitize(x_val, bins_x, bin_edges_x, sint)
-        bin_index_y = digitize(y_val, bins_y, bin_edges_y, sint)
-
-        for y in range(num_bins_y):
-            for x in range(num_bins_x):
-                hist2d[y][x] += mux(
-                    bin_index_x.equal(bins_x[x]).bit_and(bin_index_y.equal(bins_y[y])),
-                    ONE,
-                    ZERO
-                )
-
-    # Reveal the histogram
-    print_ln("Histogram 2D:")
-    for i in range(num_bins_y):
-        for j in range(num_bins_x):
-            print_ln("hist2d[%s][%s]: %s", i, j, hist2d[i][j].reveal())
-
-
-
-def hist_2d_bin(max_rows, edges_df, secret_type):
-    # In binary circuits the only clear type is cbits which does not serve very well for our purposes
-    bin_edges_x = get_bin_edges(edges_df.iloc[:, 0].values, secret_type)
-    bin_edges_y = get_bin_edges(edges_df.iloc[:, 1].values, secret_type)
-
-    num_bins_x = bin_edges_x.shape[0] - 1
-    num_bins_y = bin_edges_y.shape[0] - 1
-
-    alice = Array(max_rows, secret_type)
-    bob = Array(max_rows, secret_type)
-
-    alice.input_from(0)
-    bob.input_from(1)
-    
-    hist2d = Matrix(num_bins_y, num_bins_x, SIV32)
-    hist2d.assign_all(0)
-
-    bins_x = Array(num_bins_x, SIV32)
-    for i in range(num_bins_x):
-        bins_x[i] = SIV32(i)
-
-    bins_y = Array(num_bins_y, SIV32)
-    for i in range(num_bins_y):
-        bins_y[i] = SIV32(i)
-
-    @for_range_opt(max_rows)
-    def _(i):
-        x_val = alice[i]
-        y_val = bob[i]
-
-        bin_index_x = digitize(x_val, bins_x, bin_edges_x, SIV32)
-        bin_index_y = digitize(y_val, bins_y, bin_edges_y, SIV32)
+        bin_index_x = digitize(x_val, bins_x, bin_edges_x, hist_type)
+        bin_index_y = digitize(y_val, bins_y, bin_edges_y, hist_type)
 
         for y in range(num_bins_y):
             for x in range(num_bins_x):
@@ -167,17 +126,19 @@ def main():
         SIV32 = sbitintvec.get_type(32)
         ZERO = SIV32(0)
         ONE = SIV32(1)
+
+        # In binary circuits the only clear type is cbits which does not serve very well for our purposes so the clear_type is equal to the secret_type
         if fixed:
             print("-----------------------------------------------------------------")
             print("Compiling for 2D Histogram using fixed-point numbers (sbitfixvec)")
             print("-----------------------------------------------------------------")
-            hist_2d_bin(max_rows, edges_df, sbitfixvec)
+            hist_2d(max_rows, edges_df, (sbitfixvec, sbitfixvec, SIV32))
 
         elif integer:
             print("-------------------------------------------------------------")
             print("Compiling for 2D Histogram using integer numbers (sbitintvec)")
             print("-------------------------------------------------------------")
-            hist_2d_bin(max_rows, edges_df, SIV32)
+            hist_2d(max_rows, edges_df, (SIV32, SIV32, SIV32))
 
     else:
         ZERO = cint(0)
@@ -187,13 +148,13 @@ def main():
             print("-----------------------------------------------------------")
             print("Compiling for 2D Histogram using fixed-point numbers (sfix)")
             print("-----------------------------------------------------------")
-            hist_2d_arithmetic(max_rows, edges_df, (sfix, cfix))
+            hist_2d(max_rows, edges_df, (sfix, cfix, sint))
 
         elif integer:
             print("-------------------------------------------------------")
             print("Compiling for 2D Histogram using integer numbers (sint)")
             print("-------------------------------------------------------")
-            hist_2d_arithmetic(max_rows, edges_df, (sint, cint))
+            hist_2d(max_rows, edges_df, (sint, cint, sint))
     
 
 if __name__ == "__main__":

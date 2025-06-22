@@ -68,7 +68,7 @@ def gen_input(n, l, adjust_bit_length=True):
     return list_a, list_b
 
 
-def gen_xtabs_input(l):
+def gen_xtabs_input(l, n):
     '''
     Generates input for xtabs program. This input functions as if both parties already have their input ordered. One party has the (typically 
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
@@ -191,8 +191,8 @@ def print_xtabs(categories_a, categories_b, values):
     print(f"Expected values (std1): {sorted(std1.items())}\n")
 
 
-def gen_linreg_input(l, scale_features=True, normalize_labels=True):
-    X, y = make_regression(n_samples=l, n_features=2)
+def gen_linreg_input(l, n_features, scale_features=True, normalize_labels=True):
+    X, y = make_regression(n_samples=l, n_features=n_features)
 
     if scale_features:
         X = get_scaled(X)
@@ -200,9 +200,11 @@ def gen_linreg_input(l, scale_features=True, normalize_labels=True):
     if normalize_labels:
         y = get_normalized(y)
 
+    print(f"Generated {l} samples with {n_features} features each.")
+    print("-----------------Simple Linear Regression-----------------")
     print_simple_linreg(X[:, 0], y)
-    #print_regular_linreg(X, y)    # The features are transposed only to match the expected input format for linear regression
-    #print_sgd_linreg(features, labels)
+    print("-----------------Regular Linear Regression-----------------")
+    print_regular_linreg(X, y)
     return X.transpose(), y
 
 
@@ -256,34 +258,17 @@ def print_regular_linreg(X, Y):
     print("Expected weights (w):\n", w)
 
 
-def print_sgd_linreg(features, labels):
-    '''
-    Prints the expected output of the SGD linear regression program.
-    The features are a list of lists, where each inner list is a feature column.
-    The labels are a list of lists, where each inner list is a label column.
-    '''
-    num_features = len(features)
-    num_labels = len(labels)
-
-    print("Expected weights (w):")
-    for i in range(num_features):
-        for j in range(num_labels):
-            print(f"Feature {i}, Label {j}: w = 0.0")  # Placeholder for actual weights
-
-
-def gen_hist2d_input(l):
-    NUM_BINS_X = 5
-    NUM_BINS_Y = 5
+def gen_hist2d_input(l, n_bins):
+    num_bins_x = num_bins_y = n_bins
 
     values_a, values_b = gen_input(32, l) 
 
-    bin_edges_x = np.linspace(min(values_a), max(values_a), NUM_BINS_X + 1)
-    bin_edges_y = np.linspace(min(values_b), max(values_b), NUM_BINS_Y + 1)
+    bin_edges_x = np.linspace(min(values_a), max(values_a), num_bins_x + 1)
+    bin_edges_y = np.linspace(min(values_b), max(values_b), num_bins_y + 1)
 
     print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y)
-    write_to_csv("hist2d", PARTY_PUBLIC, bin_edges_x, bin_edges_y)
 
-    return values_a, values_b
+    return values_a, values_b, (bin_edges_x, bin_edges_y)
 
 
 def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
@@ -331,19 +316,21 @@ def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='generates input for mp-spdz sample programs')
-    parser.add_argument('-l', default=10, type=int, 
-        help="array length")
-    
     PROGRAMS = {
         "xtabs": gen_xtabs_input,
         "linreg": gen_linreg_input,
         "hist2d": gen_hist2d_input
     }
-
+    parser = argparse.ArgumentParser(
+        description='generates input for mp-spdz sample programs')
+    
     parser.add_argument('-e', default="xtabs", choices = PROGRAMS,
         help="program selection")
+    parser.add_argument('-l', default=10, type=int, 
+        help="array length")
+    parser.add_argument('-n', default=5, type=int,
+        help="number of bins or features (depending on the program)")
+    
     args = parser.parse_args()
 
     create_dirs(args.e)
@@ -351,9 +338,13 @@ if __name__ == "__main__":
     program_function = PROGRAMS.get(args.e)
 
     if program_function:
-        alice_data, bob_data = program_function(args.l)
+        data = program_function(args.l, args.n)
+        alice_data = data[0]
+        bob_data = data[1]
         write_to_csv(args.e, PARTY_ALICE, *alice_data)
         write_to_csv(args.e, PARTY_BOB, *bob_data)
+        if len(data) > 2:   # If the program has public data, write it to the public directory
+            write_to_csv(args.e, PARTY_PUBLIC, *data[2])
 
     else:
         print(f"Unknown program: {args.e}") # Should not happen
