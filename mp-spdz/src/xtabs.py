@@ -4,22 +4,20 @@ from Compiler.types import sint, cint, Array
 from Compiler.GC.types import sbitintvec
 from Compiler.oram import OptimalORAM
 
-
-CAT_LEN = 4
-
 usage = "usage: %prog [options] [args]"
 compiler = Compiler(usage=usage)
 
 # Options for defining the input matrices and their dimensions
 compiler.parser.add_option("--rows", dest="rows", type=int, help="Number of rows for the input matrices)")
+compiler.parser.add_option("--n_categories", dest="n_categories", type=int, help="Number of categories")
 
 compiler.parser.add_option("--aggregation", dest="aggregation", type=str, help="Type of aggregation to be performed (sum, average, freq(uencies), st(d)ev)")
 compiler.parser.add_option("--group_by", dest="group_by", type=str, help="Columns to group by (2 max) (e.g ab for Alice's first column and Bob's first column")
 compiler.parser.add_option("--value_col", dest="value_col", type=str, help="Value column (not needed for mode and freq.) (e.g b for Bob's column)")
 
 compiler.parse_args()
-if not compiler.options.rows:
-    compiler.parser.error("--rows required")
+if not compiler.options.rows or not compiler.options.n_categories:
+    compiler.parser.error("--rows and --n_categories required")
 
 #function_name = f"xtabs-{compiler.options.aggregation}-{len(compiler.options.group_by)}"    # e.g. xtabs-sum-2
 
@@ -53,7 +51,7 @@ def get_arrays_bin(rows, group_by_col, value_col, secret_type, oram):
     return group_by, value
 
 
-def xtabs_sum1(secret_type, cat_len=CAT_LEN):
+def xtabs_sum1(secret_type, cat_len):
     max_rows = compiler.options.rows
     group_by, values = get_arrays(max_rows, 
                                   compiler.options.group_by, 
@@ -77,7 +75,7 @@ def xtabs_sum1(secret_type, cat_len=CAT_LEN):
         print_ln("Sum %s: %s", i, sums[i].reveal())
 
 
-def xtabs_sum2(secret_type, cat_len=CAT_LEN):
+def xtabs_sum2(secret_type, cat_len):
     max_rows = compiler.options.rows
     group_by, values = get_arrays(max_rows, 
                                   compiler.options.group_by, 
@@ -106,6 +104,7 @@ def xtabs_sum2(secret_type, cat_len=CAT_LEN):
 def main():
     oram = 'oram' in compiler.prog.args # The binary circuit ORAM code uses an optimization that reduces the cost of bit-vector AND in the context of dishonest-majority semi-honest computation
     secret_type = None
+    n_categories = compiler.options.n_categories
 
     if compiler.prog.options.binary != 0: # If program is being compiled for binary circuits
         print("----------------------------------------------------------------")
@@ -115,7 +114,7 @@ def main():
 
     else:
         secret_type = sint
-        xtabs_sum1(secret_type)
+        xtabs_sum1(secret_type, n_categories)
 
 
 if __name__ == "__main__":

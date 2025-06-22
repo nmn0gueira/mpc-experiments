@@ -25,10 +25,6 @@ def create_dirs(program):
             if e.errno != errno.EEXIST: raise
 
 
-def get_rand_list(bits, l):
-    return [random.getrandbits(bits) for _ in range(l)]
-
-
 def write_to_csv(program, party, *columns):
     filepath = os.path.join(BASE_DIR, program, party, "data.csv")
     data = {}
@@ -41,26 +37,15 @@ def write_to_csv(program, party, *columns):
     pd.DataFrame(data).to_csv(filepath, index=False)
 
 
-def gen_input(n, l, adjust_bit_length=True):
-    '''
-    General function for generating the actual values for the data used by the sample programs.
+def get_rand_list(bits, l):
+    return [random.getrandbits(bits) for _ in range(l)]
 
-    Parameters:
-    n (int): The max number of bits for a number (not accounting for bit adjustment).
-    l (int): The generated input size
-    adjust_bit_length (bool): If true, the bit length specified will be adjusted to mitigate operations with extremely large
-    numbers which may lead to overflows and such. Should be False when working with smaller bit sizes.
 
-    Returns:    
-    A tuple of lists, where the first element is the list of numbers for party 1 and the second element is the list of numbers for party 2.
-    '''
-    if (n > 32):
+def gen_input(n_bits, l):
+    if (n_bits > 32):
         raise ValueError("invalid bit length---this test can only handle up to 32 bits")
 
-    bits = n
-
-    if (adjust_bit_length):
-        bits = int((n - int(math.log(l, 2))) / 2)
+    bits = int((n_bits - int(math.log(l, 2))) / 2)  # Ensure number of bits avoids overflow for large l
     
     list_a = get_rand_list(bits, l)
     list_b = get_rand_list(bits, l)
@@ -68,14 +53,20 @@ def gen_input(n, l, adjust_bit_length=True):
     return list_a, list_b
 
 
-def gen_xtabs_input(l, n):
+def gen_xtabs_input(l, n_categories_a, n_categories_b):
     '''
     Generates input for xtabs program. This input functions as if both parties already have their input ordered. One party has the (typically 
     categorical) value to group by (e.g. education level) and the other has the (typically continuous) values to aggregate upon (e.g. salary). The 
     output will depend on the function that is used to aggregate the values.
     '''
+    NUM_CATEGORIES_DEFAULT = 4
+    if n_categories_a is None:
+        n_categories_a = NUM_CATEGORIES_DEFAULT
+    if n_categories_b is None:
+        n_categories_b = n_categories_a
 
-    categories_a, categories_b = gen_input(2, l, adjust_bit_length=False)
+
+    categories_a, categories_b = [random.randrange(n_categories_a) for _ in range(l)], [random.randrange(n_categories_b) for _ in range(l)]
     values_a, values_b = gen_input(32, l)
 
     print_xtabs(categories_a, categories_b, values_b)
@@ -191,8 +182,16 @@ def print_xtabs(categories_a, categories_b, values):
     print(f"Expected values (std1): {sorted(std1.items())}\n")
 
 
-def gen_linreg_input(l, n_features, scale_features=True, normalize_labels=True):
-    X, y = make_regression(n_samples=l, n_features=n_features)
+def gen_linreg_input(l, n_features, n_labels, scale_features=True, normalize_labels=True):
+    NUM_FEATURES_DEFAULT = 1
+    NUM_LABELS_DEFAULT = 1
+
+    if n_features is None:
+        n_features = NUM_FEATURES_DEFAULT
+    if n_labels is None:
+        n_labels = NUM_LABELS_DEFAULT
+    
+    X, y = make_regression(n_samples=l, n_features=n_features, n_targets=n_labels)
 
     if scale_features:
         X = get_scaled(X)
@@ -200,7 +199,6 @@ def gen_linreg_input(l, n_features, scale_features=True, normalize_labels=True):
     if normalize_labels:
         y = get_normalized(y)
 
-    print(f"Generated {l} samples with {n_features} features each.")
     print("-----------------Simple Linear Regression-----------------")
     print_simple_linreg(X[:, 0], y)
     print("-----------------Regular Linear Regression-----------------")
@@ -258,16 +256,19 @@ def print_regular_linreg(X, Y):
     print("Expected weights (w):\n", w)
 
 
-def gen_hist2d_input(l, n_bins):
-    num_bins_x = num_bins_y = n_bins
-
+def gen_hist2d_input(l, n_bins_x, n_bins_y):
+    NUM_BINS_DEFAULT = 5
+    if n_bins_x is None:
+        n_bins_x = NUM_BINS_DEFAULT
+    if n_bins_y is None:
+        n_bins_y = n_bins_x
+    
     values_a, values_b = gen_input(32, l) 
 
-    bin_edges_x = np.linspace(min(values_a), max(values_a), num_bins_x + 1)
-    bin_edges_y = np.linspace(min(values_b), max(values_b), num_bins_y + 1)
+    bin_edges_x = np.linspace(min(values_a), max(values_a), n_bins_x + 1)
+    bin_edges_y = np.linspace(min(values_b), max(values_b), n_bins_y + 1)
 
     print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y)
-
     return values_a, values_b, (bin_edges_x, bin_edges_y)
 
 
@@ -300,20 +301,25 @@ def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
 
     print("2D Histogram (Text Representation):")
 
-    # Print the y-axis labels (bin edges)
-    print("    ", end="")
-    for x_bin in bin_edges_x:
-        print(f"{round(x_bin, 2):>5}", end=" ")
-    print()
-    
-    # Print the histogram rows
-    for i, row in enumerate(histogram):
-        print(f"{round(bin_edges_y[i], 2):>5} ", end="")  # Print x-axis labels (bin edges)
-        for count in row:
-            print(f"{count:>5}", end=" ")  # Print the counts for each bin
+    try:
+        # Print the y-axis labels (bin edges)
+        print("    ", end="")
+        for x_bin in bin_edges_x:
+            print(f"{round(x_bin, 2):>5}", end=" ")
         print()
-    print(f"{round(bin_edges_y[-1], 2):>5} ", end="")  # Print x-axis labels (bin edges)
-
+        
+        # Print the histogram rows
+        for i, row in enumerate(histogram):
+            print(f"{round(bin_edges_y[i], 2):>5} ", end="")  # Print x-axis labels (bin edges)
+            for count in row:
+                print(f"{count:>5}", end=" ")  # Print the counts for each bin
+            print()
+        print(f"{round(bin_edges_y[-1], 2):>5} ", end="")  # Print x-axis labels (bin edges)
+    except IndexError: # If the dimensions are different or something else goes wrong, just print the raw data
+        print("Error printing histogram, printing raw data instead:")
+        for y in range(num_bins_y):
+            for x in range(num_bins_x):
+                print(f"Bin ({x}, {y}): {histogram[x][y]}")
 
 if __name__ == "__main__":
     PROGRAMS = {
@@ -328,8 +334,10 @@ if __name__ == "__main__":
         help="program selection")
     parser.add_argument('-l', default=10, type=int, 
         help="array length")
-    parser.add_argument('-n', default=5, type=int,
-        help="number of bins or features (depending on the program)")
+    parser.add_argument('-x', type=int,
+        help="number of categories, features or bins of alice (depending on the program)")
+    parser.add_argument('-y', type=int,
+        help="number of categories, labels or bins of bob (depending on the program)")
     
     args = parser.parse_args()
 
@@ -338,7 +346,7 @@ if __name__ == "__main__":
     program_function = PROGRAMS.get(args.e)
 
     if program_function:
-        data = program_function(args.l, args.n)
+        data = program_function(args.l, args.x, args.y)
         alice_data = data[0]
         bob_data = data[1]
         write_to_csv(args.e, PARTY_ALICE, *alice_data)

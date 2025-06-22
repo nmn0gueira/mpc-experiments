@@ -19,9 +19,6 @@
 using namespace emp;
 using namespace std;
 
-const int CAT_LEN = 4;	// For now, the number of categories is fixed to 4 (0, 1, 2, 3)
-
-
 void initialize_groupby_inputs(int party, Integer *group_by, int input_size, char* agg_cols) {
 	int agg_cols_len = strlen(agg_cols);	// Number of characters in the string (NOT THE ACTUAL NUMBER OF COLUMNS)
 	const int STEP = 2;	// Each column is represented by two characters (e.g. a0, b1, etc.)
@@ -116,7 +113,7 @@ void initialize_values(int party, Float *values, int input_size, char* value_col
 	}
 }
 
-void test_sum1(int party, int input_size, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+void test_sum1(int party, int input_size, char* agg_cols, char* value_col, int cat_len) {
 	Integer *group_by = new Integer[input_size];		//  May contain inputs of both parties
 	Integer *values = new Integer[input_size];
 	
@@ -154,7 +151,7 @@ void test_sum1(int party, int input_size, char* agg_cols, char* value_col, int c
 /**
  * Same as the test_sum1 function, but now we are grouping by two categorical variables.
  */
-void test_sum2(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_sum2(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len, int second_cat_len) {
 	Integer *group_by = new Integer[input_size * 2];	//  May contain inputs of both parties
 	Integer *values = new Integer[input_size];
 
@@ -209,7 +206,7 @@ void test_sum2(int party, int input_size, char* agg_cols, char* value_col, int f
  * For the average function, we need to use emp::Float types instead of emp::Integer types for the final results if we want precision in the 
  * averages (otherwise we can use just integer division ig).
  */
-void test_average1(int party, int input_size, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+void test_average1(int party, int input_size, char* agg_cols, char* value_col, int cat_len) {
 	Integer *group_by = new Integer[input_size];		//  May contain inputs of both parties
 	Float *values = new Float[input_size];
 	
@@ -250,7 +247,7 @@ void test_average1(int party, int input_size, char* agg_cols, char* value_col, i
 
 
 
-void test_average2(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_average2(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len, int second_cat_len) {
 	Integer *group_by = new Integer[input_size * 2];		//  May contain inputs of both parties
 	Float *values = new Float[input_size];
 	
@@ -307,7 +304,7 @@ void test_average2(int party, int input_size, char* agg_cols, char* value_col, i
 }
 
 
-void test_average1_fast(int party, int input_size, char* agg_cols, char* value_col, int cat_len=CAT_LEN) {
+void test_average1_fast(int party, int input_size, char* agg_cols, char* value_col, int cat_len) {
 	Integer *group_by = new Integer[input_size];		//  May contain inputs of both parties
 	Integer *values = new Integer[input_size];
 	
@@ -347,7 +344,7 @@ void test_average1_fast(int party, int input_size, char* agg_cols, char* value_c
 }
 
 
-void test_average2_fast(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_average2_fast(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len, int second_cat_len) {
 	Integer *group_by = new Integer[input_size * 2];		//  May contain inputs of both parties
 	Integer *values = new Integer[input_size];
 	
@@ -405,7 +402,7 @@ void test_average2_fast(int party, int input_size, char* agg_cols, char* value_c
 }
 
 
-void test_mode(int party, int input_size, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_mode(int party, int input_size, char* agg_cols, int first_cat_len, int second_cat_len) {
 	Integer *group_by = new Integer[input_size * 2];		//  May contain inputs of both parties
 
 	Integer frequencies [first_cat_len][second_cat_len];
@@ -473,7 +470,7 @@ void test_mode(int party, int input_size, char* agg_cols, int first_cat_len=CAT_
 }
 
 
-void test_freq(int party, int input_size, char* agg_cols, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN) {
+void test_freq(int party, int input_size, char* agg_cols, int first_cat_len, int second_cat_len) {
 	Integer *group_by = new Integer[input_size * 2];		//  May contain inputs of both parties
 
 	Integer frequencies [first_cat_len][second_cat_len];
@@ -519,7 +516,7 @@ void test_freq(int party, int input_size, char* agg_cols, int first_cat_len=CAT_
 	delete[] group_by;
 }
 
-void test_std1(int party, int input_size, char* agg_cols, char* value_col, int cat_len=CAT_LEN, int ddof=0) {
+void test_std1(int party, int input_size, char* agg_cols, char* value_col, int cat_len, int ddof=0) {
 	Integer *group_by = new Integer[input_size];		//  May contain inputs of both parties
 	Float *values = new Float[input_size];
 	
@@ -582,7 +579,7 @@ void test_std1(int party, int input_size, char* agg_cols, char* value_col, int c
 }
 
 
-void test_std2(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len=CAT_LEN, int second_cat_len=CAT_LEN, int ddof=0) {
+void test_std2(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len, int second_cat_len, int ddof=0) {
 	Integer *group_by = new Integer[input_size * 2];		//  May contain inputs of both parties
 	Float *values = new Float[input_size];
 	
@@ -674,16 +671,16 @@ void test_std2(int party, int input_size, char* agg_cols, char* value_col, int f
 
 
 
-void xtabs_1(int party, int input_size, char aggregation, char* agg_cols, char* value_col) {
+void xtabs_1(int party, int input_size, char aggregation, int n_categories, char* agg_cols, char* value_col) {
 	switch (aggregation) {
 		case 's':
-			utils::time_it(test_sum1, party, input_size, agg_cols, value_col, CAT_LEN);
+			utils::time_it(test_sum1, party, input_size, agg_cols, value_col, n_categories);
 			break;
 		case 'a':
-			utils::time_it(test_average1, party, input_size, agg_cols, value_col, CAT_LEN);
+			utils::time_it(test_average1, party, input_size, agg_cols, value_col, n_categories);
 			break;
 		case 'v':
-			utils::time_it(test_average1_fast, party, input_size, agg_cols, value_col, CAT_LEN);
+			utils::time_it(test_average1_fast, party, input_size, agg_cols, value_col, n_categories);
 			break;
 		case 'm':
 			cout << "Mode is not available when grouping by one column only" << endl;
@@ -692,7 +689,7 @@ void xtabs_1(int party, int input_size, char aggregation, char* agg_cols, char* 
 			cout << "Frequency counts are not available when grouping by one column only" << endl;
 			break;
 		case 'd':
-			utils::time_it(test_std1, party, input_size, agg_cols, value_col, CAT_LEN, 0);
+			utils::time_it(test_std1, party, input_size, agg_cols, value_col, n_categories, 0);
 			break;
 		default:
 			cout << "Invalid aggregation type" << endl;
@@ -701,25 +698,25 @@ void xtabs_1(int party, int input_size, char aggregation, char* agg_cols, char* 
 
 }
 
-void xtabs_2(int party, int input_size, char aggregation, char* agg_cols, char* value_col) {
+void xtabs_2(int party, int input_size, char aggregation, int n_categories_1, int n_categories_2, char* agg_cols, char* value_col) {
 	switch (aggregation) {
 		case 's':
-			utils::time_it(test_sum2, party, input_size, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			utils::time_it(test_sum2, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2);
 			break;
 		case 'a':
-			utils::time_it(test_average2, party, input_size, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			utils::time_it(test_average2, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2);
 			break;
 		case 'v':
-			utils::time_it(test_average2_fast, party, input_size, agg_cols, value_col, CAT_LEN, CAT_LEN);
+			utils::time_it(test_average2_fast, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2);
 			break;
 		case 'm':
-			utils::time_it(test_mode, party, input_size, agg_cols, CAT_LEN, CAT_LEN);
+			utils::time_it(test_mode, party, input_size, agg_cols, n_categories_1, n_categories_2);
 			break;
 		case 'f':
-			utils::time_it(test_freq, party, input_size, agg_cols, CAT_LEN, CAT_LEN);
+			utils::time_it(test_freq, party, input_size, agg_cols, n_categories_1, n_categories_2);
 			break;
 		case 'd':
-			utils::time_it(test_std2, party, input_size, agg_cols, value_col, CAT_LEN, CAT_LEN, 0);
+			utils::time_it(test_std2, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2, 0);
 			break;
 		default:
 			cout << "Invalid aggregation type" << endl;
@@ -728,14 +725,14 @@ void xtabs_2(int party, int input_size, char aggregation, char* agg_cols, char* 
 }
 
 // Right now this requires setting a value column for mode and frequency counts even though they are not used
-void test_xtabs(int party, int input_size, char aggregation, char* agg_cols, char* value_col) {
+void test_xtabs(int party, int input_size, char aggregation, int n_categories_1, int n_categories_2, char* agg_cols, char* value_col) {
 	int num_agg_cols = strlen(agg_cols) / 2;	// Number of aggregation columns (e.g. a0b1 -> 2)
 
 	if (num_agg_cols == 1) {
-		xtabs_1(party, input_size, aggregation, agg_cols, value_col);
+		xtabs_1(party, input_size, aggregation, n_categories_1, agg_cols, value_col);
 	}
 	else if (num_agg_cols == 2) {
-		xtabs_2(party, input_size, aggregation, agg_cols, value_col);
+		xtabs_2(party, input_size, aggregation, n_categories_1, n_categories_2, agg_cols, value_col);
 	}
 	else {
 		cout << "Invalid number of aggregation columns" << endl;
@@ -748,16 +745,18 @@ void test_xtabs(int party, int input_size, char aggregation, char* agg_cols, cha
  * TODO: Change the way columns are parsed to be more flexible and not crash with a column that is represented by more than 1 digit
  */
 int main(int argc, char **argv) {
-	if (argc != 8 && argc != 9) {
-		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <aggregation> <aggregate_by> <value_col> <input_dir>" << endl;
-		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <aggregation> <aggregate_by> <value_col> <input_dir>" << endl;
+	if (argc != 10 && argc != 11) {
+		cout << "Usage for Alice (server): <program> 1 <port> <input_size> <aggregation> <n_categories_1> <n_categories_2> <aggregate_by> <value_col> <input_dir>" << endl;
+		cout << "Usage for Bob (client): <program> 2 <port> <ip> <input_size> <aggregation> <n_categories_1> <n_categories_2> <aggregate_by> <value_col> <input_dir>" << endl;
 		cout << endl;
 		cout << "Additional argument explanation: " << endl;
 		cout << "<input_size> argument is the number of elements that will be read in each file (e.g. 1000)" << endl;
 		cout << "<aggregation> argument can be one of the following: " << endl;
+		cout << "<n_categories_1> argument is the number of categories for the first aggregation column (e.g. 5)" << endl;
+		cout << "<n_categories_2> argument is the number of categories for the second aggregation column (e.g. 5). May not be applied if only one aggregation column is used but should be specified anyway." << endl;
 		cout << "s - sum, a - average, v - fast average, m - mode, f - frequency counts, d - standard deviation" << endl;
 		cout << "<aggregate_by> argument has format of a0b1 for using Alice's column 0 and Bob's column 1 to aggregate by" << endl;
-		cout << "<value_col> argument has format of a0 for using Alice's column 0 as the value column" << endl;
+		cout << "<value_col> argument has format of a0 for using Alice's column 0 as the value column. May not be applied if function does not use value_col but should be specified anyway." << endl;
 		return 0;
 	}
     
@@ -767,8 +766,10 @@ int main(int argc, char **argv) {
 	char * ip = nullptr;
 	if(party == BOB) ip = argv[3];
 	
-	int input_size = atoi(argv[argc - 5]);
-	char* aggregation = argv[argc - 4];
+	int input_size = atoi(argv[argc - 7]);
+	char* aggregation = argv[argc - 6];
+	int n_categories_1 = atoi(argv[argc - 5]);
+	int n_categories_2 = atoi(argv[argc - 4]);
 	char* agg_cols = argv[argc - 3];
 	char* value_col = argv[argc - 2];
 	utils::set_directory(argv[argc - 1]);
@@ -777,7 +778,16 @@ int main(int argc, char **argv) {
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
 
-	test_xtabs(party, input_size, aggregation[0], agg_cols, value_col);
+	cout << "Party: " << (party == ALICE ? "Alice" : "Bob") << endl;
+	cout << "Input size: " << input_size << endl;
+	cout << "Aggregation: " << aggregation << endl;
+	cout << "Number of categories for first aggregation column: " << n_categories_1 << endl;
+	cout << "Number of categories for second aggregation column: " << n_categories_2 << endl;
+	cout << "Aggregate by: " << agg_cols << endl;
+	cout << "Value column: " << value_col << endl;
+	cout << "Input directory: " << utils::get_directory() << endl;
+
+	test_xtabs(party, input_size, aggregation[0], n_categories_1, n_categories_2, agg_cols, value_col);
 
 	finalize_semi_honest();
 	utils::print_io_stats(*io, party);

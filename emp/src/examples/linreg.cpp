@@ -63,6 +63,10 @@ int main(int argc, char **argv) {
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
 
+	cout << "Party: " << (party == ALICE ? "Alice" : "Bob") << endl;
+	cout << "Input size: " << input_size << endl;
+	cout << "Input directory: " << utils::get_directory() << endl;
+
 	utils::time_it(test_linreg, party, input_size);
 
 	finalize_semi_honest();

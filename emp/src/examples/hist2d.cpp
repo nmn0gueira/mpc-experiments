@@ -191,6 +191,13 @@ int main(int argc, char **argv) {
 	auto ctx = setup_semi_honest(io, party);
 	ctx->set_batch_size(1024*1024);
 
+	cout << "Party: " << (party == ALICE ? "Alice" : "Bob") << endl;
+	cout << "Input size: " << input_size << endl;
+	cout << "Mode: " << mode << endl;
+	cout << "Number of edges for x-axis: " << num_edges_x << endl;
+	cout << "Number of edges for y-axis: " << num_edges_y << endl;
+	cout << "Input directory: " << utils::get_directory() << endl;
+
 	if (mode[0] == 'i') {
 		cout << "Running integer mode..." << endl;
 		utils::time_it(test_hist2d<Integer>, party, input_size, num_edges_x, num_edges_y);
