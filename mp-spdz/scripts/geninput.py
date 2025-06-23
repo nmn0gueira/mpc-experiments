@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from operator import itemgetter
 from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
 
 np.set_printoptions(legacy='1.25')
 
@@ -243,17 +244,35 @@ def print_simple_linreg(features, labels):
     print(f"Expected training error of model (MSE): {squared_errors / len(features)}")
 
 
-def print_regular_linreg(X, Y):
-    intercept = np.ones((X.shape[0], 1))
-    X = np.hstack((intercept, X))  # Add intercept term as the first column
-    Xt = np.transpose(X)
-    XtX = Xt @ X
-    #print("XtX:\n", XtX)
-    XtX_inv = np.linalg.inv(XtX)
-    #print("XtX_inv:\n", XtX_inv)
-    XtY = Xt @ Y
-    w = XtX_inv @ XtY
-    print("Expected weights (w):\n", w)
+def print_regular_linreg(X, Y, sklearn=True):
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    if sklearn:
+        print("Using sklearn linear regression...")
+        from sklearn.linear_model import LinearRegression
+        from sklearn.metrics import mean_squared_error
+        model = LinearRegression()
+        model.fit(X_train, Y_train)
+        w = model.coef_
+        intercept = model.intercept_
+        print("Expected weights (w):\n", w)
+        print("Expected intercept:\n", intercept)
+        print("Expected test error of model (MSE):", mean_squared_error(Y_test, model.predict(X_test)))
+    
+    else:
+        print("Using manual linear regression calculation...")
+        intercept = np.ones((X_train.shape[0], 1))
+        X_train = np.hstack((intercept, X_train))  # Add intercept term as the first column
+        Xt = np.transpose(X_train)
+        XtX = Xt @ X_train
+        #print("XtX:\n", XtX)
+        XtX_inv = np.linalg.inv(XtX)
+        #print("XtX_inv:\n", XtX_inv)
+        XtY = Xt @ Y_train
+        w = XtX_inv @ XtY
+        print("Expected weights (w):\n", w[1:])
+        print("Expected intercept:\n", w[0])
+        print("Expected test error of model (MSE):", 
+              np.mean((Y_test - (X_test @ w[1:] + w[0])) ** 2))
 
 
 def gen_hist2d_input(l, n_bins_x, n_bins_y):
@@ -321,6 +340,7 @@ def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
             for x in range(num_bins_x):
                 print(f"Bin ({x}, {y}): {histogram[x][y]}")
 
+
 if __name__ == "__main__":
     PROGRAMS = {
         "xtabs": gen_xtabs_input,
@@ -352,7 +372,7 @@ if __name__ == "__main__":
         write_to_csv(args.e, PARTY_ALICE, *alice_data)
         write_to_csv(args.e, PARTY_BOB, *bob_data)
         if len(data) > 2:   # If the program has public data, write it to the public directory
-            write_to_csv(args.e, PARTY_PUBLIC, *data[2])
+            write_to_csv(args.e, PARTY_PUBLIC, *data[2]) # Pandas cannot register a csv with differing ammounts of items between columns which is why x and y must be the same for hist2d in this version
 
     else:
         print(f"Unknown program: {args.e}") # Should not happen
