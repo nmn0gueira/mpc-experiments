@@ -27,11 +27,10 @@ if not compiler.options.rows:
     compiler.parser.error("--rows required")
 
 
-def simple_linreg():
+def simple_linreg(max_rows):
     """
     Simple linreg where Alice holds the feature column and Bob holds the target column. Purely for demonstration purposes.
     """
-    max_rows = compiler.options.rows
 
     alice = Array(max_rows, sfix)
     bob = Array(max_rows, sfix)
@@ -84,7 +83,7 @@ def parse_columns(format_str):
         raise ValueError(f"Invalid format: {format_str}")
     
 
-def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
+def get_X(alice_columns, bob_columns, rows_train, rows_test):
     num_features = alice_columns + bob_columns
 
     print(f"Number of features for Alice: {alice_columns}")
@@ -122,29 +121,32 @@ def get_X_y(alice_columns, bob_columns, rows_train, rows_test):
 
         current_test_column += 1
     
-    label_holder = 0 if compiler.options.label == 'a' else 1
+
+    return X_train, X_test
+
+def get_y(label, rows_train, rows_test):
+    party = 0 if label == 'a' else 1
 
     y_train = Array(rows_train, sfix)
     y_test = Array(rows_test, sfix)
 
-    y_train.input_from(label_holder)
-    y_test.input_from(label_holder)
+    y_train.input_from(party)
+    y_test.input_from(party)
 
-    return X_train, X_test, y_train, y_test
+    return y_train, y_test
+
 
 
 # To optimize memory usage, the features argument should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
 # storing an additional matrix for alice's and bob's values
-def sgd_linreg():
-    if not compiler.options.features or not compiler.options.label:
-        compiler.parser.error("--features and --label required")
+def sgd_linreg(max_rows, features, label, test_size, n_epochs, batch_size, learning_rate):
+    rows_train = int(max_rows * (1 - test_size))
+    rows_test = int(max_rows * test_size)
 
-    rows_train = int(compiler.options.rows * (1 - compiler.options.test_size))
-    rows_test = int(compiler.options.rows * compiler.options.test_size)
+    alice_columns, bob_columns = parse_columns(features)
 
-    alice_columns, bob_columns = parse_columns(compiler.options.features)
-
-    X_train, X_test, y_train, y_test = get_X_y(alice_columns, bob_columns, rows_train, rows_test)    
+    X_train, X_test = get_X(alice_columns, bob_columns, rows_train, rows_test)
+    y_train, y_test = get_y(label, rows_train, rows_test)
 
     """ for i in range(X_train.shape[0]):
         for j in range(X_train.shape[1]):
@@ -158,7 +160,7 @@ def sgd_linreg():
     #print_ln("y_test: %s", y_test.reveal())
     
     
-    linear = ml.SGDLinear(compiler.options.n_epochs, compiler.options.batch_size)
+    linear = ml.SGDLinear(n_epochs, batch_size)
     linear.fit(X_train, y_train)
 
     print_ln('Model Weights: %s', linear.opt.layers[0].W[:].reveal())
@@ -216,13 +218,24 @@ def print_compiler_options(compiler_message, sgd=True):
 def main():
     compiler.prog.use_trunc_pr = True
 
+    max_rows = compiler.options.rows
+
     if "simple" in compiler.prog.args:
         print_compiler_options("Compiling for simple linear regression", sgd=False)
-        simple_linreg()
+        simple_linreg(max_rows)
         return
+    
+    features = compiler.options.features
+    label = compiler.options.label
+    if not features or not label:
+        compiler.parser.error("--features and --label are required for sgd linear regression")
+    test_size = compiler.options.test_size
+    n_epochs = compiler.options.n_epochs
+    batch_size = compiler.options.batch_size
+    learning_rate = compiler.options.learning_rate
 
     print_compiler_options("Compiling for linear regression using SGD")
-    sgd_linreg()
+    sgd_linreg(max_rows, features, label, test_size, n_epochs, batch_size, learning_rate)
     
 
 if __name__ == "__main__":
