@@ -300,6 +300,7 @@ def print_hist2d(values_a, values_b, bin_edges_x, bin_edges_y):
             for x in range(num_bins_x):
                 print(f"Bin ({x}, {y}): {histogram[x][y]}")
 
+
 if __name__ == "__main__":
     PROGRAMS = {
         "xtabs": gen_xtabs_input,

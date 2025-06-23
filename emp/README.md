@@ -27,10 +27,10 @@ make
 To run the examples, you will need sample data. This data can be generated with the python script included in the repository. Usage of the script is as follows:
 
 ```bash
-python3 scripts/geninput.py -e <ex> -l <numrows>
+python3 scripts/geninput.py -e <ex> -l <numrows> -x <num> -y <num>
 ```
 
-The default for -l is 10.
+The default for -l (input length) is 10, while the defaults for -x and -y differ between programs (both have a default of 4 for xtabs or 5 for hist2d and correspond to number of categories and number of bins of alice and bob, respectively).
 
 ### Running the examples
 Some examples may have slightly different arguments where it is best to check the usage by simplifying executing the program without arguments. In general, to run an example you can run the following command for Alice:

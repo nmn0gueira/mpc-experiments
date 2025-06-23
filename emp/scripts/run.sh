@@ -42,10 +42,10 @@ usage() {
     echo "  -a -b             Run both Alice and Bob (default if no options are given)"
     echo ""
     echo "Programs:"
-    echo "  millionaire                     Secure comparison of two numbers"
-    echo "  xtabs <aggregation> <groupby>   Cross-tabulation [(s)um | (a)vg | | a(v)g_fast | (m)ode | (f)req | st(d)ev ; number of group by columns (1 or 2)]"
-    echo "  linreg                          Linear regression"
-    echo "  hist2d <mode>                   2D histogram [(i)nteger or (f)loat usage for binning]"
+    echo "  millionaire                                                             Secure comparison of two numbers"
+    echo "  xtabs <aggregation> <groupby> [<num_categories_1>] [<num_categories_2>] Cross-tabulation [(s)um | (a)vg | | a(v)g_fast | (m)ode | (f)req | st(d)ev ; number of group by columns (1 or 2)]"
+    echo "  linreg                                                                  Linear regression"
+    echo "  hist2d <mode> [<num_edges_x>] [<num_edges_y>]                           2D histogram [(i)nteger or (f)loat usage for binning]"
 }
 
 build_command() {
