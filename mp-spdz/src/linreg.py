@@ -196,21 +196,32 @@ def sgd_linreg():
     ) """
 
 
+def print_compiler_options(compiler_message, sgd=True):
+    print("----------------------------------------------------------------")
+    print(compiler_message)
+    print("----------------------------------------------------------------")
+    print("Compiler options:")
+    print("Rows:", compiler.options.rows)
+    if sgd:
+        print("Features:", compiler.options.features)
+        print("Label:", compiler.options.label)
+        print("Test size:", compiler.options.test_size)
+        print("Number of epochs:", compiler.options.n_epochs)
+        print("Batch size:", compiler.options.batch_size)
+        print("Learning rate:", compiler.options.learning_rate)
+    print("----------------------------------------------------------------")
+
 
 @compiler.register_function('linreg')
 def main():
     compiler.prog.use_trunc_pr = True
 
     if "simple" in compiler.prog.args:
-        print("-----------------------------------------")
-        print("Compiling for simple linear regression")
-        print("-----------------------------------------")
+        print_compiler_options("Compiling for simple linear regression", sgd=False)
         simple_linreg()
         return
 
-    print("-----------------------------------------")
-    print("Compiling for linear regression using SGD")
-    print("-----------------------------------------")
+    print_compiler_options("Compiling for linear regression using SGD")
     sgd_linreg()
     
 

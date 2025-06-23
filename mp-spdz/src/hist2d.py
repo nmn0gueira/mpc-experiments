@@ -110,6 +110,13 @@ def hist_2d(max_rows, edges_df, types):
             print_ln("hist2d[%s][%s]: %s", i, j, hist2d[i][j].reveal())
 
 
+def print_compiler_options():
+    print("----------------------------------------------------------------")
+    print("Compiler options:")
+    print("Rows:", compiler.options.rows)
+    print("----------------------------------------------------------------")
+
+
 @compiler.register_function('hist2d')
 def main():
     global ZERO
@@ -121,6 +128,8 @@ def main():
 
     edges_df = pd.read_csv('Player-Data/public/data.csv')
 
+    print_compiler_options()
+    
     if compiler.prog.options.binary != 0: # If the program is being compiled for binary
         global SIV32
         SIV32 = sbitintvec.get_type(32)
