@@ -32,14 +32,16 @@ HIST2D_NUM_EDGES_Y=6
 alice=false
 bob=false
 address=127.0.0.1
+input_size=1000
 
 usage() {
-    echo "Usage: $0 [-a] [-b <alice_address>] <program_name> <input_size> [<args>]"
+    echo "Usage: $0 [-a] [-b <alice_address>] [-i <input_size>] <program_name> [<args>]"
     echo ""
     echo "Options:"
     echo "  -a                Run as Alice"
     echo "  -b <address>      Run as Bob (connect to Alice at <address>)"
     echo "  -a -b             Run both Alice and Bob (default if no options are given)"
+    echo "  -i <input_size>   Set the input size (default: $input_size)"
     echo ""
     echo "Programs:"
     echo "  millionaire                                                             Secure comparison of two numbers"
@@ -69,6 +71,7 @@ while getopts "ab:" opt; do
     case $opt in
         a)  alice=true ;;
         b)  bob=true; address=$OPTARG; echo "Address set to $address" ;;
+        i)  input_size=$OPTARG echo "Input size set to $input_size" ;;
         \?) echo "Invalid flag"; usage; exit 1 ;;
         :)  echo "Option -$OPTARG requires an argument"; usage; exit 1 ;;
     esac
@@ -76,15 +79,14 @@ done
 shift $((OPTIND -1))
 
 program=$1
-input_size=$2
 
-if [ -z "$program" ] || [ -z "$input_size" ]; then
-    echo "Program name and input size are required."
+if [ -z "$program" ]; then
+    echo "Program name required."
     usage
     exit 1
 fi
 
-shift 2
+shift 1
 
 case $program in
     "millionaire" )
