@@ -35,16 +35,14 @@ def digitize(val, bins, bin_edges, secret_type):
     found_index = secret_type(0)
     bin_index = secret_type(0)
     
-    @for_range_opt(1, bin_edges.shape[0])
-    def _(i):
-    #for i in range(1, num_edges):  
+    for i in range(1, bin_edges.shape[0]):  
         leq = val <= bin_edges[i]
         
-        select = mux(found_index.bit_not(), leq, ZERO)
-        bin_index.update(mux(select, bins[i-1], bin_index))
+        select = mux(found_index.bit_not(), leq, 0)
+        bin_index = mux(select, bins[i-1], bin_index)
 
         # Only updates found index the first time
-        found_index.update(mux(found_index.bit_not(), select, found_index))
+        found_index = mux(found_index.bit_not(), select, found_index)
 
     return bin_index
 
@@ -97,10 +95,10 @@ def hist_2d(max_rows, edges_df, types):
 
         for y in range(num_bins_y):
             for x in range(num_bins_x):
-                hist2d[y][x] += mux(
-                    bin_index_x.equal(bins_x[x]).bit_and(bin_index_y.equal(bins_y[y])),
-                    ONE,
-                    ZERO
+                hist2d[y][x] = mux(
+                    (bin_index_x == bins_x[x]) & (bin_index_y == bins_y[y]),
+                    hist2d[y][x] + 1,
+                    hist2d[y][x]
                 )
 
     # Reveal the histogram
@@ -110,7 +108,9 @@ def hist_2d(max_rows, edges_df, types):
             print_ln("hist2d[%s][%s]: %s", i, j, hist2d[i][j].reveal())
 
 
-def print_compiler_options():
+def print_compiler_options(compiler_message):
+    print("----------------------------------------------------------------")
+    print(compiler_message)
     print("----------------------------------------------------------------")
     print("Compiler options:")
     print("Rows:", compiler.options.rows)
@@ -119,52 +119,31 @@ def print_compiler_options():
 
 @compiler.register_function('hist2d')
 def main():
-    global ZERO
-    global ONE
-
-    fixed = 'fix' in compiler.prog.args
-    integer = 'int' in compiler.prog.args
     max_rows = compiler.options.rows
 
+    fixed = 'fix' in compiler.prog.args
+
     edges_df = pd.read_csv('Player-Data/public/data.csv')
+    types = None
+    compiler_message = None
 
-    print_compiler_options()
-    
+    # In binary circuits the only clear type is cbits which does not serve very well for our purposes so the clear_type is equal to the secret_type
     if compiler.prog.options.binary != 0: # If the program is being compiled for binary
-        global SIV32
-        SIV32 = sbitintvec.get_type(32)
-        ZERO = SIV32(0)
-        ONE = SIV32(1)
-
-        # In binary circuits the only clear type is cbits which does not serve very well for our purposes so the clear_type is equal to the secret_type
-        if fixed:
-            print("-----------------------------------------------------------------")
-            print("Compiling for 2D Histogram using fixed-point numbers (sbitfixvec)")
-            print("-----------------------------------------------------------------")
-            hist_2d(max_rows, edges_df, (sbitfixvec, sbitfixvec, SIV32))
-
-        elif integer:
-            print("-------------------------------------------------------------")
-            print("Compiling for 2D Histogram using integer numbers (sbitintvec)")
-            print("-------------------------------------------------------------")
-            hist_2d(max_rows, edges_df, (SIV32, SIV32, SIV32))
+        siv = sbitintvec.get_type(int(compiler.prog.options.binary))
+        types = (sbitfixvec, sbitfixvec, siv) if fixed else (siv, siv, siv)
+        compiler_message = f"Compiling for binary circuits with {types[0]} secret type"
 
     else:
-        ZERO = cint(0)
-        ONE = cint(1)
-        if fixed:
-            compiler.prog.use_trunc_pr = True
-            print("-----------------------------------------------------------")
-            print("Compiling for 2D Histogram using fixed-point numbers (sfix)")
-            print("-----------------------------------------------------------")
-            hist_2d(max_rows, edges_df, (sfix, cfix, sint))
+        compiler.prog.use_trunc_pr = True
+        types = (sfix, cfix, sint) if fixed else (sint, cint, sint)
+        compiler_message = f"Compiling for arithmetic circuits with {types[0]} secret type"
 
-        elif integer:
-            print("-------------------------------------------------------")
-            print("Compiling for 2D Histogram using integer numbers (sint)")
-            print("-------------------------------------------------------")
-            hist_2d(max_rows, edges_df, (sint, cint, sint))
     
+    print_compiler_options(compiler_message)
+
+    hist_2d(max_rows, edges_df, types)
+
+
 
 if __name__ == "__main__":
     compiler.compile_func()
