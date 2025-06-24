@@ -71,7 +71,7 @@ while getopts "ab:i:" opt; do
     case $opt in
         a)  alice=true ;;
         b)  bob=true; address=$OPTARG; echo "Address set to $address" ;;
-        i)  input_size=$OPTARG echo "Input size set to $input_size" ;;
+        i)  input_size=$OPTARG; echo "Input size set to $input_size" ;;
         \?) echo "Invalid flag"; usage; exit 1 ;;
         :)  echo "Option -$OPTARG requires an argument"; usage; exit 1 ;;
     esac
