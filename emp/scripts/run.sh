@@ -67,7 +67,7 @@ build_command() {
     fi
 }
 
-while getopts "ab:" opt; do
+while getopts "ab:i:" opt; do
     case $opt in
         a)  alice=true ;;
         b)  bob=true; address=$OPTARG; echo "Address set to $address" ;;
@@ -76,6 +76,7 @@ while getopts "ab:" opt; do
         :)  echo "Option -$OPTARG requires an argument"; usage; exit 1 ;;
     esac
 done
+
 shift $((OPTIND -1))
 
 program=$1
