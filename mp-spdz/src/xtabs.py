@@ -82,7 +82,7 @@ def xtabs_sum1(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
     @for_range_opt(max_rows)
     def _(i):
         for j in range(cat_len):
-            sums[j] = mux(group_by_col[i] == categories[j], sums[j] + values[i], sums[j])
+            sums[j] += mux(group_by_col[i] == categories[j], values[i], 0)
 
     
     for i in range(cat_len):
@@ -112,7 +112,7 @@ def xtabs_sum2(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
         for j in range(cat_len_1):
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
-                sums[j][k] = mux(match_1 & (group_by_cols[i][1] == categories_2[k]), sums[j][k] + values[i], sums[j][k])
+                sums[j][k] += mux(match_1 & (group_by_cols[i][1] == categories_2[k]), values[i], 0)
 
 
     
@@ -134,12 +134,13 @@ def xtabs_avg1(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
         counts[i] = stype_cmp(0)
         categories[i] = ctype(i)
 
-
+    
     @for_range_opt(max_rows)
     def _(i):
         for j in range(cat_len):
-            sums[j] = mux(group_by_col[i] == categories[j], sums[j] + values[i], sums[j])
-            counts[j] = mux(group_by_col[i] == categories[j], counts[j] + 1, counts[j])
+            full_match = group_by_col[i] == categories[j]
+            sums[j] += mux(full_match, values[i], 0)
+            counts[j] += mux(full_match, 1, 0)
 
     
     for i in range(cat_len):
@@ -172,9 +173,8 @@ def xtabs_avg2(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
                 full_match = match_1 & (group_by_cols[i][1] == categories_2[k])
-                sums[j][k] = mux(full_match, sums[j][k] + values[i], sums[j][k])
-                counts[j][k] = mux(full_match, counts[j][k] + 1, counts[j][k])
-
+                sums[j][k] += mux(full_match, values[i], 0)
+                counts[j][k] += mux(full_match, 1, 0)
 
     
     for i in range(cat_len_1):
@@ -203,8 +203,9 @@ def xtabs_std1(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
     @for_range_opt(max_rows)
     def _(i):
         for j in range(cat_len):
-            sums[j] = mux(group_by_col[i] == categories[j], sums[j] + values[i], sums[j])
-            counts[j] = mux(group_by_col[i] == categories[j], counts[j] + 1, counts[j])
+            full_match = group_by_col[i] == categories[j]
+            sums[j] += mux(full_match, values[i], 0)
+            counts[j] += mux(full_match, 1, 0)
 
     
     for i in range(cat_len):
@@ -213,7 +214,7 @@ def xtabs_std1(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
     @for_range_opt(max_rows)
     def _(i):
         for j in range(cat_len):
-            variances[j] = mux(group_by_col[i] == categories[j], variances[j] + (values[i] - averages[j]) ** 2, variances[j])
+            variances[j] += mux(group_by_col[i] == categories[j], (values[i] - averages[j]) ** 2, 0)
 
 
     for i in range(cat_len):
@@ -250,19 +251,21 @@ def xtabs_std2(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
                 full_match = match_1 & (group_by_cols[i][1] == categories_2[k])
-                sums[j][k] = mux(full_match, sums[j][k] + values[i], sums[j][k])
-                counts[j][k] = mux(full_match, counts[j][k] + 1, counts[j][k])
+                sums[j][k] += mux(full_match, values[i], 0)
+                counts[j][k] += mux(full_match, 1, 0)
     
+
     for i in range(cat_len_1):
         for j in range(cat_len_2):
             averages[i][j] = sums[i][j] / counts[i][j]
+
 
     @for_range_opt(max_rows)
     def _(i):
         for j in range(cat_len_1):
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
-                variances[j][k] = mux(match_1 & (group_by_cols[i][1] == categories_2[k]), variances[j][k] + (values[i] - averages[j][k]) ** 2, variances[j][k])
+                variances[j][k] += mux(match_1 & (group_by_cols[i][1] == categories_2[k]), (values[i] - averages[j][k]) ** 2, 0)
     
 
     for i in range(cat_len_1):
@@ -292,7 +295,7 @@ def xtabs_freq(max_rows, group_by, ctype, stype_cmp, cat_len_1, cat_len_2):
         for j in range(cat_len_1):
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
-                counts[j][k] = mux(match_1 & (group_by_cols[i][1] == categories_2[k]), counts[j][k] + 1, counts[j][k])
+                counts[j][k] += mux(match_1 & (group_by_cols[i][1] == categories_2[k]), 1, 0)
 
     
     for i in range(cat_len_1):
@@ -323,7 +326,7 @@ def xtabs_mode(max_rows, group_by, ctype, stype_cmp, cat_len_1, cat_len_2):
         for j in range(cat_len_1):
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
-                counts[j][k] = mux(match_1 & (group_by_cols[i][1] == categories_2[k]), counts[j][k] + 1, counts[j][k])
+                counts[j][k] += mux(match_1 & (group_by_cols[i][1] == categories_2[k]), 1, 0)
 
     
     for i in range(cat_len_1):

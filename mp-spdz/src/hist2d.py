@@ -85,6 +85,7 @@ def hist_2d(max_rows, edges_df, types):
     for i in range(num_bins_y):
         bins_y[i] = hist_type(i)
 
+    
     @for_range_opt(max_rows)
     def _(i):
         x_val = alice[i]
@@ -92,13 +93,15 @@ def hist_2d(max_rows, edges_df, types):
 
         bin_index_x = digitize(x_val, bins_x, bin_edges_x, hist_type)
         bin_index_y = digitize(y_val, bins_y, bin_edges_y, hist_type)
-
+        
+        # For some reason using += instead of regular assignment performs quite a bit better
         for y in range(num_bins_y):
+            match_y = bin_index_y == bins_y[y]
             for x in range(num_bins_x):
-                hist2d[y][x] = mux(
-                    (bin_index_x == bins_x[x]) & (bin_index_y == bins_y[y]),
-                    hist2d[y][x] + 1,
-                    hist2d[y][x]
+                hist2d[y][x] += mux(
+                    (bin_index_x == bins_x[x]) & match_y,
+                    1,
+                    0
                 )
 
     # Reveal the histogram

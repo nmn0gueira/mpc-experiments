@@ -124,6 +124,7 @@ def get_X(alice_columns, bob_columns, rows_train, rows_test):
 
     return X_train, X_test
 
+
 def get_y(label, rows_train, rows_test):
     party = 0 if label == 'a' else 1
 
@@ -134,7 +135,6 @@ def get_y(label, rows_train, rows_test):
     y_test.input_from(party)
 
     return y_train, y_test
-
 
 
 # To optimize memory usage, the features argument should specify the required columns from each party in ascending order so each column can be taken as input all at once and avoid
