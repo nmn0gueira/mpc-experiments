@@ -140,7 +140,7 @@ def xtabs_avg1(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
         for j in range(cat_len):
             full_match = group_by_col[i] == categories[j]
             sums[j] += mux(full_match, values[i], 0)
-            counts[j] += mux(full_match, 1, 0)
+            counts[j] += full_match
 
     
     for i in range(cat_len):
@@ -174,7 +174,7 @@ def xtabs_avg2(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
             for k in range(cat_len_2):
                 full_match = match_1 & (group_by_cols[i][1] == categories_2[k])
                 sums[j][k] += mux(full_match, values[i], 0)
-                counts[j][k] += mux(full_match, 1, 0)
+                counts[j][k] += full_match
 
     
     for i in range(cat_len_1):
@@ -205,7 +205,7 @@ def xtabs_std1(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
         for j in range(cat_len):
             full_match = group_by_col[i] == categories[j]
             sums[j] += mux(full_match, values[i], 0)
-            counts[j] += mux(full_match, 1, 0)
+            counts[j] += full_match
 
     
     for i in range(cat_len):
@@ -252,7 +252,7 @@ def xtabs_std2(max_rows, group_by, value_col, ctype, stype_cmp, stype_val, cat_l
             for k in range(cat_len_2):
                 full_match = match_1 & (group_by_cols[i][1] == categories_2[k])
                 sums[j][k] += mux(full_match, values[i], 0)
-                counts[j][k] += mux(full_match, 1, 0)
+                counts[j][k] += full_match
     
 
     for i in range(cat_len_1):
@@ -295,7 +295,7 @@ def xtabs_freq(max_rows, group_by, ctype, stype_cmp, cat_len_1, cat_len_2):
         for j in range(cat_len_1):
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
-                counts[j][k] += mux(match_1 & (group_by_cols[i][1] == categories_2[k]), 1, 0)
+                counts[j][k] += match_1 & (group_by_cols[i][1] == categories_2[k])
 
     
     for i in range(cat_len_1):
@@ -326,7 +326,7 @@ def xtabs_mode(max_rows, group_by, ctype, stype_cmp, cat_len_1, cat_len_2):
         for j in range(cat_len_1):
             match_1 = group_by_cols[i][0] == categories_1[j]
             for k in range(cat_len_2):
-                counts[j][k] += mux(match_1 & (group_by_cols[i][1] == categories_2[k]), 1, 0)
+                counts[j][k] += match_1 & (group_by_cols[i][1] == categories_2[k])
 
     
     for i in range(cat_len_1):

@@ -98,11 +98,7 @@ def hist_2d(max_rows, edges_df, types):
         for y in range(num_bins_y):
             match_y = bin_index_y == bins_y[y]
             for x in range(num_bins_x):
-                hist2d[y][x] += mux(
-                    (bin_index_x == bins_x[x]) & match_y,
-                    1,
-                    0
-                )
+                hist2d[y][x] += (bin_index_x == bins_x[x]) & match_y # same as mux((bin_index_x == bins_x[x]) & match_y, 1, 0)
 
     # Reveal the histogram
     print_ln("Histogram 2D:")
