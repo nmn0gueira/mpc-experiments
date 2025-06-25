@@ -304,7 +304,7 @@ void test_average2(int party, int input_size, char* agg_cols, char* value_col, i
 }
 
 
-void test_average1_fast(int party, int input_size, char* agg_cols, char* value_col, int cat_len) {
+void test_average1_fast(int party, int input_size, char* agg_cols, char* value_col, int cat_len, bool float_precision=false) {
 	Integer *group_by = new Integer[input_size];		//  May contain inputs of both parties
 	Integer *values = new Integer[input_size];
 	
@@ -332,11 +332,15 @@ void test_average1_fast(int party, int input_size, char* agg_cols, char* value_c
 		}	
 	}
 
-    for (int i = 0; i < cat_len; ++i) {
-		int sum = sums[i].reveal<int>();
-		int count = counts[i].reveal<int>();
-		float average = (float) sum / count;
-        cout << "Average (" << i << "): " << average << endl;
+	if (float_precision) {
+		for (int i = 0; i < cat_len; ++i) {
+			cout << "Average float (" << i << "): " <<  ((float) sums[i].reveal<int>() / counts[i].reveal<int>()) << endl;
+		}
+	}
+	else {
+		for (int i = 0; i < cat_len; ++i) {
+			cout << "Average int (" << i << "): " << (sums[i] / counts[i]).reveal<int>() << endl;
+		}
 	}
 
 	delete[] group_by;
@@ -344,7 +348,7 @@ void test_average1_fast(int party, int input_size, char* agg_cols, char* value_c
 }
 
 
-void test_average2_fast(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len, int second_cat_len) {
+void test_average2_fast(int party, int input_size, char* agg_cols, char* value_col, int first_cat_len, int second_cat_len, bool float_precision=false) {
 	Integer *group_by = new Integer[input_size * 2];		//  May contain inputs of both parties
 	Integer *values = new Integer[input_size];
 	
@@ -388,12 +392,19 @@ void test_average2_fast(int party, int input_size, char* agg_cols, char* value_c
 		}	
 	}
 	
-	for (int i = 0; i < first_cat_len; ++i) {
-		for (int j = 0; j < second_cat_len; ++j) {
-			int sum = sums[i][j].reveal<int>();
-			int count = counts[i][j].reveal<int>();
-			float average = (float) sum / count;
-			cout << "Average (" << i << ", " << j << "): " << average << endl;
+
+	if (float_precision) {
+		for (int i = 0; i < first_cat_len; ++i) {
+			for (int j = 0; j < second_cat_len; ++j) {
+				cout << "Average float (" << i << "): " <<  ((float) sums[i][j].reveal<int>() / counts[i][j].reveal<int>()) << endl;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < first_cat_len; ++i) {
+			for (int j = 0; j < second_cat_len; ++j) {
+				cout << "Average int (" << i << "): " << (sums[i][j] / counts[i][j]).reveal<int>() << endl;
+			}
 		}
 	}
 
@@ -680,7 +691,7 @@ void xtabs_1(int party, int input_size, char aggregation, int n_categories, char
 			utils::time_it(test_average1, party, input_size, agg_cols, value_col, n_categories);
 			break;
 		case 'v':
-			utils::time_it(test_average1_fast, party, input_size, agg_cols, value_col, n_categories);
+			utils::time_it(test_average1_fast, party, input_size, agg_cols, value_col, n_categories, false);
 			break;
 		case 'm':
 			cout << "Mode is not available when grouping by one column only" << endl;
@@ -707,7 +718,7 @@ void xtabs_2(int party, int input_size, char aggregation, int n_categories_1, in
 			utils::time_it(test_average2, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2);
 			break;
 		case 'v':
-			utils::time_it(test_average2_fast, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2);
+			utils::time_it(test_average2_fast, party, input_size, agg_cols, value_col, n_categories_1, n_categories_2, false);
 			break;
 		case 'm':
 			utils::time_it(test_mode, party, input_size, agg_cols, n_categories_1, n_categories_2);
