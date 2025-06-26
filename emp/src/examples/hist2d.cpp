@@ -48,18 +48,8 @@ void initialize_edges(T * bin_edges_x, T * bin_edges_y, int num_edges_x, int num
  * takes bin edges as input and "returns" an index adjusted for zero-indexing.
  */
 void digitize(Integer val, Integer * bins, Integer * bin_edges, int num_edges, Integer & bin_to_index) {
-	static Bit false_bit = Bit();
-	Bit found_index = Bit();
-	for (int i = 1; i < num_edges; ++i) {	// Starts at 1 since it is useless to do a leq compare against the min edge
-		Bit leq = val <= bin_edges[i];
-
-		// The select bit will only be true if leq is true AND the correct index has not been found yet
-		Bit select = false_bit.select(!found_index, leq);
-		bin_to_index = bin_to_index.select(select, bins[i - 1]);	// i - 1 since num_bins = num_edges - 1
-
-		// Only updates found_index the first time
-		found_index = found_index.select(!found_index, select);
-
+	for (int i = num_edges - 1; i > 0; --i) {
+		bin_to_index = bin_to_index.select(val <= bin_edges[i], bins[i - 1]);	// i - 1 since num_bins = num_edges - 1
 	}
 }
 
@@ -68,17 +58,8 @@ void digitize(Integer val, Integer * bins, Integer * bin_edges, int num_edges, I
  * takes bin edges as input and "returns" an index adjusted for zero-indexing.
  */
 void digitize(Float val, Integer * bins, Float * bin_edges, int num_edges, Integer & bin_to_index) {
-	static Bit false_bit = Bit();
-	Bit found_index = Bit();
-	for (int i = 1; i < num_edges; ++i) {	// Starts at 1 since it is useless to do a leq compare against the min edge
-		Bit leq = val.less_equal(bin_edges[i]);
-
-		// The select bit will only be true if leq is true AND the correct index has not been found yet
-		Bit select = false_bit.select(!found_index, leq);
-		bin_to_index = bin_to_index.select(select, bins[i - 1]);	// i - 1 since num_bins = num_edges - 1
-
-		// Only updates found_index the first time
-		found_index = found_index.select(!found_index, select);
+	for (int i = num_edges - 1; i > 0; --i) {
+		bin_to_index = bin_to_index.select(val.less_equal(bin_edges[i]), bins[i - 1]);	// i - 1 since num_bins = num_edges - 1
 	}
 }
 
@@ -92,7 +73,7 @@ void reveal_hist2d(Integer* hist2d, int num_bins_x, int num_bins_y) {
 	
 /**
  * Items are placed in bins according to the formula bin[i-1] < x <= bin[i]. This function computes a 2d histogram with the aggregation performed
- * being a count. In the feature this could be any sort of aggregation ig, like in xtabs.
+ * being a count. In the future this could be any sort of aggregation ig, like in xtabs.
  */
 template<typename T>
 void test_hist2d(int party, int input_size, int num_edges_x, int num_edges_y) {
@@ -128,23 +109,19 @@ void test_hist2d(int party, int input_size, int num_edges_x, int num_edges_y) {
 
 	Integer zero(BITSIZE, 0);
 	for (int i = 0; i < input_size; ++i) {
-		T x_val = a[i];
-		T y_val = b[i];
 		Integer x_bin(BITSIZE, 0, PUBLIC);
 		Integer y_bin(BITSIZE, 0 , PUBLIC);
 
-		digitize(x_val, bins_x, bin_edges_x, num_edges_x, x_bin);
-		digitize(y_val, bins_y, bin_edges_y, num_edges_y, y_bin);
+		digitize(a[i], bins_x, bin_edges_x, num_edges_x, x_bin);
+		digitize(b[i], bins_y, bin_edges_y, num_edges_y, y_bin);
 
 		// Update histogram
 		for (int y = 0; y < num_bins_y; ++y) {
+			Bit eq_y = y_bin.equal(bins_y[y]);
+
 			for (int x = 0; x < num_bins_x; ++x) {
 				int hist_index = y * num_bins_x + x;
-
-				Bit eq_x = x_bin.equal(bins_x[x]);
-				Bit eq_y = y_bin.equal(bins_y[y]);
-
-				Bit eq_bin = eq_x & eq_y;
+				Bit eq_bin = x_bin.equal(bins_x[x]) & eq_y;
 				// hist2d[hist_index] = hist2d[hist_index] + 1;
 				emp::add_full(hist2d[hist_index].bits.data(), nullptr, hist2d[hist_index].bits.data(), zero.bits.data(), &eq_bin, hist2d[hist_index].size());
 

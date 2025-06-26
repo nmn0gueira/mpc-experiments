@@ -30,19 +30,13 @@ def get_bin_edges(values, value_type):
     return bin_edges
 
 
-# For some reason using a regular for loop in this function seems to just break the for_range_opt optimization in hist2d making it the same as this version but without setting the budget.
+# Binning strategy: edge_1 < x <= edge_2
 def digitize(val, bins, bin_edges, secret_type):
-    found_index = secret_type(0)
-    bin_index = secret_type(0)
+    bin_index = secret_type(bins.shape[0] - 1)
     
-    for i in range(1, bin_edges.shape[0]):  
-        leq = val <= bin_edges[i]
-        
-        select = mux(found_index.bit_not(), leq, 0)
-        bin_index = mux(select, bins[i-1], bin_index)
-
-        # Only updates found index the first time
-        found_index = mux(found_index.bit_not(), select, found_index)
+    # Doing the loop in normal order instead of reverse we do the binning like edge_1 <= x < edge_2
+    for i in range(bin_edges.shape[0] - 1, 0, -1):        
+        bin_index = mux(val <= bin_edges[i], bins[i-1], bin_index)
 
     return bin_index
 
@@ -88,11 +82,8 @@ def hist_2d(max_rows, edges_df, types):
     
     @for_range_opt(max_rows)
     def _(i):
-        x_val = alice[i]
-        y_val = bob[i]
-
-        bin_index_x = digitize(x_val, bins_x, bin_edges_x, hist_type)
-        bin_index_y = digitize(y_val, bins_y, bin_edges_y, hist_type)
+        bin_index_x = digitize(alice[i], bins_x, bin_edges_x, hist_type)
+        bin_index_y = digitize(bob[i], bins_y, bin_edges_y, hist_type)
         
         # For some reason using += instead of regular assignment performs quite a bit better
         for y in range(num_bins_y):
