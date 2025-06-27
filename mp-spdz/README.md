@@ -18,7 +18,7 @@ After setting up your environment, you can run the installation script to instal
 where `<fromsource>` is either `yes` or `no`. Note that building from source will take longer.
 
 ### Usage
-To simplify the usage of MP-SPDZ locally while keep the environment uncluttered, a few are provided to scripts to help with the data setup, compilation, and running of the programs. The scripts are located in the `scripts` folder.
+To keep the environment uncluttered and separated from the MP-SPDZ directory itself, a few scripts are provided to help with the data setup, compilation, and running of the programs. The scripts are located in the `scripts` folder.
 
 #### Setup Data
 To run the programs, you will need to prepare program input. You can do this by running the `iprep.sh` script:
@@ -35,16 +35,19 @@ scripts/compile.sh <program> <protocol_options> <program_args>
 ```
 where `<program>` is the name of the program you want to compile that is in the `src` folder. The `<protocol_options>` arguments can include more than one as per the MP-SPDZ documentation. The `<program_args>` are the arguments that you want to pass to the program, which can also include more than one.
 
-> This script is just to facilitate the compilation process. It copies the program to the MP-SPDZ directory and runs the MP-SPDZ compilation process.
+> This script copies the program to the MP-SPDZ directory before running the MP-SPDZ compilation process (and timing it).
 
 #### Running
 To run a program, you can use the `run.sh` script:
 ```bash
-scripts/run.sh <protocol_script> <program> <protocol_script_args>
+scripts/run.sh <protocol_script> <program> <runtime_args>
 ```
-where `<protocol_script>` is the bash script of the protocol that you want to run (with the `.sh` included), `<program>` is the name of the program previously compiled. The `<protocol_script_args>` arguments can include more than one as per the MP-SPDZ documentation.
-
-> Keep in mind that this script is for running in localhost only. To run the compiled program in a distributed environment, you will need to go to the MP-SPDZ directory on each machine and run the compiled program with the preferred protocol binary (.e.g. `./mascot-party.x`).
+for running in localhost, where `<protocol_script>` is the bash script of the protocol that you want to run (with the `.sh` included), or
+```bash
+scripts/run.sh <protocol_binary> <party> <program_name> [<runtime_args>]
+```
+for running parties separately, where `<party>` is the party to run as. `<program>` is the name of the program previously compiled and `<runtime_args>` are arguments that can be specified to
+the protocol binary (e.g., `-pn 1234` for the port number).
 
 
 ## Running in Docker
