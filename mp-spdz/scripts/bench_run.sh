@@ -1,8 +1,7 @@
 #!/bin/bash
-set -e
 
 usage() {
-    echo "Usage: $0 [-n <num_runs>] [-v] <command> [arguments...]"
+    echo "Usage: $0 [-n <num_runs>] [-f] [-v] <command> [arguments...]"
 }
 
 num_runs=50
@@ -10,16 +9,18 @@ output_file="benchmark_results.txt"
 total_time=0
 valid_runs=0
 
+force=false
 verbose=false
 
 > $output_file
 
-while getopts "n:v" opt; do
+while getopts "n:vf" opt; do
     case $opt in
         n)  num_runs=$OPTARG;;
         v)  verbose=true ;;
+        f)  force=true ;;
         \?) echo "Invalid flag"; usage; exit 1 ;;
-        :)  echo "Option -$OPTARG requires an argument"; usage; exit 1 ;;
+        :)  echo "Option -$opt requires an argument"; usage; exit 1 ;;
     esac
 done
 
@@ -42,10 +43,14 @@ do
     if [ -n "$execution_time" ]; then
         total_time=$(echo "$total_time $execution_time" | awk '{print $1 + $2}')
         valid_runs=$((valid_runs + 1))
+        last_successful_output="$output"
         run_msg="Run $i: $execution_time ms"
         
     else
         run_msg="Run $i: Error extracting time"
+        if [ "$force" = true ]; then
+            i=$((i - 1)) # Decrement i to repeat this run
+        fi
     fi
 
     if [ "$verbose" = true ]; then
