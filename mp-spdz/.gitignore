@@ -1,5 +1,5 @@
 .vscode/
 MP-SPDZ/
 data/
-alt/
 venv/
+benchmark_results.txt

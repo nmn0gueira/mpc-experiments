@@ -37,7 +37,7 @@ for ((i=1; i<=num_runs; i++))
 do
     output=$("$@" 2>&1)
     
-    execution_time=$(echo "$output" | grep -oP 'Execution time: \K[0-9.]+')
+    execution_time=$(echo "$output" | grep -oP 'time: \K[0-9.]+' | awk '{print $1 * 1000}') # Convert seconds to milliseconds as well
     
     if [ -n "$execution_time" ]; then
         total_time=$(echo "$total_time $execution_time" | awk '{print $1 + $2}')
@@ -57,12 +57,9 @@ done
 
 if [ $valid_runs -gt 0 ]; then
     avg_time=$(echo "$total_time $valid_runs" | awk '{print $1 / $2}')
-    avg_time_msg="Average execution time: $avg_time ms"
-    communication_msg=$(echo "$output" | grep 'sent :')
+    avg_time_msg="Average compilation time: $avg_time ms"
     echo "$avg_time_msg"
-    echo "$communication_msg"
     echo "$avg_time_msg" >> $output_file
-    echo "$communication_msg" >> $output_file
 else
     echo "No valid runs completed." >> $output_file
 fi
