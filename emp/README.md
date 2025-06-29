@@ -64,7 +64,7 @@ To run the examples in a Docker environment, you can either build a custom Docke
     - The `hist2d` function uses integers for the binning of the data. This may very slightly impact precision loss in binning but proves much more efficient. An implementation that works with floats is included as well.
 
 
-## TBD
+## TODO
 This section includes work that has not been completed yet for this particular framework.
 
 ### Optimizations

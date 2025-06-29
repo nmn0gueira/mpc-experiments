@@ -96,10 +96,8 @@ docker build \
 
 This is especially useful when experimenting with different programs while reusing the same machine configuration.
 
-## TBD
+## TODO
 ### Optimizations
-- `xtabs`:
-  - Fix some functions not working with binary circuits (namely those that use division, and for some reason those that aggregate by two columns). Alternatively, remove the binary circuit option for xtabs.
 - `linreg`: 
 	- Add a version of sgd linreg that uses a user-defined model as this might allow extensions such as poly feats or lasso/ridge regression (check linreg code comments for more info).
   - Add a mean squared error loss function to the linreg program.
