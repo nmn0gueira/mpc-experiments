@@ -36,7 +36,7 @@ def simple_linreg(max_rows):
     bob = Array(max_rows, sfix)
 
     # Change precision to avoid overflows
-    sfix.set_precision(16, 44)  # Might need to compile with -R 192.
+    sfix.set_precision(16, 47)  # Might need to compile with -R 192.
 
     alice.input_from(0)
     bob.input_from(1)
