@@ -124,7 +124,7 @@ def main():
         compiler_message = f"Compiling for binary circuits with {types[0]} secret type"
 
     else:
-        compiler.prog.use_trunc_pr = True
+        compiler.prog.use_trunc_pr = True # Comment this line if the protocol cannot use probabilistic truncation
         types = (sfix, cfix, sint) if fixed else (sint, cint, sint)
         compiler_message = f"Compiling for arithmetic circuits with {types[0]} secret type"
 

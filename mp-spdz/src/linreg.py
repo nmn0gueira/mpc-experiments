@@ -36,7 +36,7 @@ def simple_linreg(max_rows):
     bob = Array(max_rows, sfix)
 
     # Change precision to avoid overflows
-    sfix.set_precision(16, 47)  # Needs to compile with -R 192.
+    sfix.set_precision(16, 44)  # Might need to compile with -R 192.
 
     alice.input_from(0)
     bob.input_from(1)
@@ -216,7 +216,7 @@ def print_compiler_options(compiler_message, sgd=True):
 
 @compiler.register_function('linreg')
 def main():
-    compiler.prog.use_trunc_pr = True
+    compiler.prog.use_trunc_pr = True # Comment this line if the protocol cannot use probabilistic truncation
 
     max_rows = compiler.options.rows
 
