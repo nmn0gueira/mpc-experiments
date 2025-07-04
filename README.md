@@ -5,7 +5,7 @@ This repository contains example implementations of functions using various gene
 Each framework is located in its own directory, containing the implementation of the functions and a README file with specific instructions to set up its build environment. The README files also include instructions on how to run the test programs and any additional notes specific to that framework.
 
 ## Test Programs
-The test programs focus on statistical analysis and are designed to be simple yet representative of common data processing tasks. Each function is implemented in multiple frameworks to compare performance and usability.
+The test programs focus on statistical analysis and are designed to be simple yet representative of common data processing tasks. Each function is implemented in multiple frameworks to compare performance and usability. All functions are implemented for single-threaded execution.
 
 Below is a general overview of the implemented functions. For detailed information on each framework’s implementation, refer to the README files inside their respective directories.
 
